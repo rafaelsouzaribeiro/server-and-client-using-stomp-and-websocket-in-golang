@@ -9,7 +9,7 @@ import (
 
 func main() {
 	// Endereço do servidor STOMP
-	serverAddress := "localhost:61613"
+	serverAddress := "springboot:8080"
 
 	// Conectar ao servidor STOMP
 	conn, err := stomp.Dial("tcp", serverAddress)
@@ -22,7 +22,7 @@ func main() {
 	destination := "/topic/greetings"
 
 	// Corpo da mensagem
-	messageBody := "Hello, STOMP!"
+	messageBody := "Hello, STOMP 1!"
 
 	// Subscrever para receber mensagens
 	sub, err := conn.Subscribe(destination, stomp.AckAuto)

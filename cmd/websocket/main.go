@@ -15,7 +15,7 @@ var upgrader = websocket.Upgrader{
 
 func main() {
 	http.HandleFunc("/gs-guide-websocket", wsHandler)
-	log.Fatal(http.ListenAndServe("192.168.18.8:8080", nil))
+	log.Fatal(http.ListenAndServe("springboot:8080", nil))
 
 	// Fecha a conexão
 
