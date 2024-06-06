@@ -18,6 +18,7 @@ var upgrader = websocket.Upgrader{
 
 var clients = make(map[*websocket.Conn]bool)
 var broadcast = make(chan dto.Payload)
+var messageBuffer []dto.Payload
 
 func main() {
 	http.HandleFunc("/ws", handleConnections)
@@ -35,6 +36,8 @@ func main() {
 func handleMessages() {
 	for {
 		msg := <-broadcast
+
+		messageBuffer = append(messageBuffer, msg)
 
 		for client := range clients {
 			err := client.WriteJSON(msg)
@@ -56,6 +59,15 @@ func handleConnections(w http.ResponseWriter, r *http.Request) {
 	defer conn.Close()
 
 	clients[conn] = true
+
+	for _, msg := range messageBuffer {
+		err := conn.WriteJSON(msg)
+		if err != nil {
+			fmt.Println(err)
+			delete(clients, conn)
+			return
+		}
+	}
 
 	for {
 		var msg dto.Payload
