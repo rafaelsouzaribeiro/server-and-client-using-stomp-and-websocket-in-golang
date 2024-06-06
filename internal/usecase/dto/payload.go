@@ -6,7 +6,8 @@ import (
 
 type Payload struct {
 	Destination string
-	Message     string
+	Message     string `json:"message"`
 	Header      *frame.Header
 	ContentType string
+	Username    string `json:"username"`
 }
