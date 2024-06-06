@@ -3,8 +3,8 @@ package main
 import (
 	"fmt"
 
-	"github.com/rafaelsouzaribeiro/server-websocket-and-stomp-golang/pkg/payload"
-	"github.com/rafaelsouzaribeiro/server-websocket-and-stomp-golang/pkg/stomp/client"
+	"github.com/rafaelsouzaribeiro/websocket-and-stomp-client-server-in-golang/pkg/payload"
+	"github.com/rafaelsouzaribeiro/websocket-and-stomp-client-server-in-golang/pkg/stomp/client"
 )
 
 func main() {

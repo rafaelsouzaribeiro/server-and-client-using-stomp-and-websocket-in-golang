@@ -1,4 +1,4 @@
-module github.com/rafaelsouzaribeiro/server-websocket-and-stomp-golang
+module github.com/rafaelsouzaribeiro/websocket-and-stomp-client-server-in-golang
 
 go 1.21.4
 
