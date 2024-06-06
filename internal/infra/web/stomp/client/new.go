@@ -5,7 +5,7 @@ import (
 	"log"
 
 	"github.com/go-stomp/stomp/v3"
-	"github.com/rafaelsouzaribeiro/websocket-and-stomp-client-server-in-golang/pkg/payload"
+	"github.com/rafaelsouzaribeiro/websocket-and-stomp-client-server-in-golang/internal/usecase/dto"
 )
 
 type Client struct {
@@ -24,7 +24,7 @@ func NewClient(host string, port int, username, passcode string) *Client {
 	}
 }
 
-func (c *Client) InitClient(pay *payload.Payload, channel chan<- payload.Payload) {
+func (c *Client) InitClient(pay *dto.Payload, channel chan<- dto.Payload) {
 	options := []func(*stomp.Conn) error{
 		stomp.ConnOpt.Login(c.username, c.passcode),
 	}
@@ -47,7 +47,7 @@ func (c *Client) InitClient(pay *payload.Payload, channel chan<- payload.Payload
 	}
 
 	for msg := range sub.C {
-		channel <- payload.Payload{
+		channel <- dto.Payload{
 			Message:     string(msg.Body),
 			Destination: msg.Destination,
 			Header:      msg.Header,

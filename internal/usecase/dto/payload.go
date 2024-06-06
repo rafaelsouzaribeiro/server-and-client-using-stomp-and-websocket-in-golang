@@ -1,4 +1,4 @@
-package payload
+package dto
 
 import (
 	"github.com/go-stomp/stomp/v3/frame"
