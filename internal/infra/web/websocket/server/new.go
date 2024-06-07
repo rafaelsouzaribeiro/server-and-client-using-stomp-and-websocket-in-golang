@@ -77,18 +77,14 @@ func handleConnections(w http.ResponseWriter, r *http.Request) {
 
 	clients[conn] = true
 
-	if len(messageBuffer) < 100 {
-		for _, msg := range messageBuffer {
-			err := conn.WriteJSON(msg)
-			if err != nil {
-				delete(clients, conn)
-				delete(users, msg.Username)
-				fmt.Println(err)
-				return
-			}
+	for _, msg := range messageBuffer {
+		err := conn.WriteJSON(msg)
+		if err != nil {
+			delete(clients, conn)
+			delete(users, msg.Username)
+			fmt.Println(err)
+			return
 		}
-	} else {
-		messageBuffer = nil
 	}
 
 	for {
