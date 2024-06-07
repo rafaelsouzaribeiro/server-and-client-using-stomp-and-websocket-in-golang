@@ -37,6 +37,7 @@ func (client *Client) ClientWebsocket(username, message string, channel chan<- d
 	}
 
 	go func() {
+		defer close(channel)
 		for {
 			var msg dto.Payload
 			err := conn.ReadJSON(&msg)
