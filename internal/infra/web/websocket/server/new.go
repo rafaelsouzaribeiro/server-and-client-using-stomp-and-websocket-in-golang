@@ -40,8 +40,7 @@ func (server *Server) ServerWebsocket() {
 
 	go handleMessages()
 
-	ms := fmt.Sprintf("Server started on %s:%d", server.host, server.port)
-	println(ms)
+	fmt.Printf("Server started on %s:%d \n", server.host, server.port)
 
 	err := http.ListenAndServe(fmt.Sprintf("%s:%d", server.host, server.port), nil)
 	if err != nil {
