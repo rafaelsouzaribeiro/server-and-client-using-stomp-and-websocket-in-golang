@@ -25,7 +25,7 @@ var upgrader = websocket.Upgrader{
 var clients = make(map[*websocket.Conn]bool)
 var broadcast = make(chan dto.Payload)
 var messageBuffer []dto.Payload
-var users = make(map[*websocket.Conn]string)
+var users = make(map[string]*websocket.Conn)
 
 func NewServer(host, pattern string, port int) *Server {
 	return &Server{
@@ -49,21 +49,19 @@ func (server *Server) ServerWebsocket() {
 }
 
 func handleMessages() {
-	for {
-		msg := <-broadcast
-
+	for msg := range broadcast {
 		messageBuffer = append(messageBuffer, msg)
 
 		fmt.Printf("User connected: %s\n", msg.Username)
 
 		for client := range clients {
-			users[client] = msg.Username
+			users[msg.Username] = client
 			err := client.WriteJSON(msg)
 			if err != nil {
 				fmt.Println(err)
 				client.Close()
 				delete(clients, client)
-				delete(users, client)
+				delete(users, msg.Username)
 			}
 		}
 	}
@@ -83,8 +81,6 @@ func handleConnections(w http.ResponseWriter, r *http.Request) {
 		err := conn.WriteJSON(msg)
 		if err != nil {
 			fmt.Println(err)
-			delete(clients, conn)
-			delete(users, conn)
 			return
 		}
 	}
@@ -92,14 +88,23 @@ func handleConnections(w http.ResponseWriter, r *http.Request) {
 	for {
 		var msg dto.Payload
 		err := conn.ReadJSON(&msg)
-		username := users[conn]
 		if err != nil {
+			username := getUsernameByConnection(conn)
 			fmt.Printf("User %s disconnected: %v\n", username, err)
 			delete(clients, conn)
-			delete(users, conn)
+			delete(users, username)
 			return
 		}
 
 		broadcast <- msg
 	}
+}
+
+func getUsernameByConnection(conn *websocket.Conn) string {
+	for username, connection := range users {
+		if connection == conn {
+			return username
+		}
+	}
+	return ""
 }
