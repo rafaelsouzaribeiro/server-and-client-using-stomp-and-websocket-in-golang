@@ -73,7 +73,13 @@ func handleConnections(w http.ResponseWriter, r *http.Request) {
 		fmt.Println(err)
 		return
 	}
-	defer conn.Close()
+	defer func() {
+		username := getUsernameByConnection(conn)
+		fmt.Printf("User %s disconnected\n", username)
+		conn.Close()
+		delete(clients, conn)
+		delete(users, username)
+	}()
 
 	clients[conn] = true
 
@@ -91,10 +97,7 @@ func handleConnections(w http.ResponseWriter, r *http.Request) {
 		var msg dto.Payload
 		err := conn.ReadJSON(&msg)
 		if err != nil {
-			username := getUsernameByConnection(conn)
-			fmt.Printf("User %s disconnected: %v\n", username, err)
-			delete(clients, conn)
-			delete(users, username)
+			fmt.Printf("Error reading message: %v\n", err)
 			return
 		}
 
