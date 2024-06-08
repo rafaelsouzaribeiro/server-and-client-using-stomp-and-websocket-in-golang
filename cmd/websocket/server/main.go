@@ -1,6 +1,6 @@
 package main
 
-import "github.com/rafaelsouzaribeiro/websocket-and-stomp-client-server-in-golang/internal/infra/web/websocket/server"
+import "github.com/rafaelsouzaribeiro/server-and-client-using-stomp-and-websocket-in-golang/internal/infra/web/websocket/server"
 
 func main() {
 
