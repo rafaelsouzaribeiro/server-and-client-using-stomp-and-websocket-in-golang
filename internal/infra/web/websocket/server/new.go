@@ -36,7 +36,7 @@ func NewServer(host, pattern string, port int) *Server {
 }
 
 func (server *Server) ServerWebsocket() {
-	http.HandleFunc("/ws", handleConnections)
+	http.HandleFunc(server.pattern, handleConnections)
 
 	go handleMessages()
 

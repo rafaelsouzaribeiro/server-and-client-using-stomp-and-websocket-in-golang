@@ -4,7 +4,7 @@ import "github.com/rafaelsouzaribeiro/server-and-client-using-stomp-and-websocke
 
 func main() {
 
-	svc := server.NewServer("localhost", "ws", 8080)
+	svc := server.NewServer("localhost", "/ws", 8080)
 	svc.ServerWebsocket()
 
 }
