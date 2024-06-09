@@ -76,9 +76,9 @@ func handleConnections(w http.ResponseWriter, r *http.Request) {
 	defer func() {
 		username := getUsernameByConnection(conn)
 		fmt.Printf("User %s disconnected\n", username)
-		conn.Close()
 		delete(clients, conn)
 		delete(users, username)
+		conn.Close()
 	}()
 
 	clients[conn] = true
@@ -89,6 +89,7 @@ func handleConnections(w http.ResponseWriter, r *http.Request) {
 			delete(clients, conn)
 			delete(users, msg.Username)
 			fmt.Println(err)
+			conn.Close()
 			return
 		}
 	}
@@ -98,7 +99,7 @@ func handleConnections(w http.ResponseWriter, r *http.Request) {
 		err := conn.ReadJSON(&msg)
 		if err != nil {
 			fmt.Printf("Error reading message: %v\n", err)
-			return
+			break
 		}
 
 		broadcast <- msg
