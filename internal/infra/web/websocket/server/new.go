@@ -61,7 +61,7 @@ func handleMessages() {
 
 		messageBuffer = append(messageBuffer, msg)
 
-		if verifyCon(msg.Username) {
+		if verify(msg.Username, &verifiedCon) {
 			fmt.Printf("User connected: %s\n", msg.Username)
 			delete(verifiedDes, msg.Username)
 
@@ -88,7 +88,7 @@ func handleConnections(w http.ResponseWriter, r *http.Request) {
 	defer func() {
 		username := getUsernameByConnection(conn)
 
-		if verifyDes(username) {
+		if verify(username, &verifiedDes) {
 			fmt.Printf("User %s disconnected\n", username)
 			delete(verifiedCon, username)
 		}
@@ -148,17 +148,9 @@ func deleteUserByUserName(username string, close bool) {
 	}
 }
 
-func verifyCon(s string) bool {
-	if !verifiedCon[s] {
-		verifiedCon[s] = true
-		return true
-	}
-	return false
-}
-
-func verifyDes(s string) bool {
-	if !verifiedDes[s] {
-		verifiedDes[s] = true
+func verify(s string, variable *map[string]bool) bool {
+	if !(*variable)[s] {
+		(*variable)[s] = true
 		return true
 	}
 	return false
