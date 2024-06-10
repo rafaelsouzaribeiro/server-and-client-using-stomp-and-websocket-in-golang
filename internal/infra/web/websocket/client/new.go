@@ -36,18 +36,16 @@ func (client *Client) ClientWebsocket(username, message string, channel chan<- d
 		return
 	}
 
-	go func() {
-		defer close(channel)
-		for {
-			var msg dto.Payload
-			err := conn.ReadJSON(&msg)
-			if err != nil {
-				log.Println("Error reading message:", err)
-				return
-			}
-
-			channel <- msg
+	defer close(channel)
+	for {
+		var msg dto.Payload
+		err := conn.ReadJSON(&msg)
+		if err != nil {
+			log.Println("Error reading message:", err)
+			return
 		}
-	}()
+
+		channel <- msg
+	}
 
 }
