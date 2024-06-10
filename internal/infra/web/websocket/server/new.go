@@ -64,7 +64,6 @@ func handleMessages() {
 		if verifyCon(msg.Username) {
 			fmt.Printf("User connected: %s\n", msg.Username)
 			delete(verifiedDes, msg.Username)
-			//removeMessageDes(msg.Username, &verifiedCon, &verifiedDes)
 
 		}
 
