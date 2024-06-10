@@ -32,6 +32,8 @@ var broadcast = make(chan dto.Payload)
 var messageBuffer []dto.Payload
 var users = make(map[int]User)
 var pointer = -1
+var verifiedCon = make(map[string]bool)
+var verifiedDes = make(map[string]bool)
 
 func NewServer(host, pattern string, port int) *Server {
 	return &Server{
@@ -59,14 +61,17 @@ func handleMessages() {
 
 		messageBuffer = append(messageBuffer, msg)
 
-		fmt.Printf("User connected: %s\n", msg.Username)
+		if verifyCon(msg.Username) {
+			fmt.Printf("User connected: %s\n", msg.Username)
+		}
 
 		for _, user := range users {
+
 			err := user.conn.WriteJSON(msg)
 			if err != nil {
 				fmt.Println(err)
 				user.conn.Close()
-				deleteUserByPointer(user.pointer)
+				deleteUserByUserName(user.username, false)
 			}
 		}
 	}
@@ -81,16 +86,18 @@ func handleConnections(w http.ResponseWriter, r *http.Request) {
 	defer func() {
 		username := getUsernameByConnection(conn)
 
-		fmt.Printf("User %s disconnected\n", username)
+		if verifyDes(username) {
+			fmt.Printf("User %s disconnected\n", username)
+		}
 
-		deleteUserByConnection(conn)
+		deleteUserByUserName(username, true)
 		conn.Close()
 	}()
 
 	for _, msg := range messageBuffer {
 		err := conn.WriteJSON(msg)
 		if err != nil {
-			deleteUserByConnection(conn)
+			deleteUserByUserName(msg.Username, false)
 			fmt.Println(err)
 			conn.Close()
 			return
@@ -103,7 +110,7 @@ func handleConnections(w http.ResponseWriter, r *http.Request) {
 		var msgs dto.Payload
 		err := conn.ReadJSON(&msgs)
 		if err != nil {
-			fmt.Printf("Error reading message: %v\n", err)
+			//fmt.Printf("Error reading message: %v\n", err)
 			break
 		}
 
@@ -126,15 +133,30 @@ func getUsernameByConnection(conn *websocket.Conn) string {
 	return ""
 }
 
-func deleteUserByConnection(conn *websocket.Conn) {
+func deleteUserByUserName(username string, close bool) {
 	for k, user := range users {
-		if user.conn == conn {
+		if user.username == username {
+			if close {
+				user.conn.Close()
+			}
+
 			delete(users, k)
-			return
 		}
 	}
 }
 
-func deleteUserByPointer(pointer int) {
-	delete(users, pointer)
+func verifyCon(s string) bool {
+	if !verifiedCon[s] {
+		verifiedCon[s] = true
+		return true
+	}
+	return false
+}
+
+func verifyDes(s string) bool {
+	if !verifiedDes[s] {
+		verifiedDes[s] = true
+		return true
+	}
+	return false
 }
