@@ -63,7 +63,8 @@ func handleMessages() {
 
 		if verifyCon(msg.Username) {
 			fmt.Printf("User connected: %s\n", msg.Username)
-			removeMessageDes(msg.Username, &verifiedCon, &verifiedDes)
+			delete(verifiedDes, msg.Username)
+			//removeMessageDes(msg.Username, &verifiedCon, &verifiedDes)
 
 		}
 
@@ -90,7 +91,7 @@ func handleConnections(w http.ResponseWriter, r *http.Request) {
 
 		if verifyDes(username) {
 			fmt.Printf("User %s disconnected\n", username)
-			removeMessageCon(username, &verifiedCon, &verifiedDes)
+			delete(verifiedCon, username)
 		}
 
 		deleteUserByUserName(username, true)
@@ -162,32 +163,4 @@ func verifyDes(s string) bool {
 		return true
 	}
 	return false
-}
-
-func removeMessageCon(s string, objCon *map[string]bool, objDes *map[string]bool) {
-	for k := range *objDes {
-		if k == s {
-			for c := range *objCon {
-				if c == s {
-					delete(*objCon, s)
-				}
-			}
-		}
-
-	}
-
-}
-
-func removeMessageDes(s string, objCon *map[string]bool, objDes *map[string]bool) {
-	for k := range *objCon {
-		if k == s {
-			for c := range *objDes {
-				if c == s {
-					delete(*objDes, s)
-				}
-			}
-		}
-
-	}
-
 }
