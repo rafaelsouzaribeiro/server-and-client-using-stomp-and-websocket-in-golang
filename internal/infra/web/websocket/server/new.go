@@ -22,10 +22,16 @@ var upgrader = websocket.Upgrader{
 	},
 }
 
-var clients = make(map[*websocket.Conn]bool)
+type User struct {
+	conn     *websocket.Conn
+	username string
+	pointer  int
+}
+
 var broadcast = make(chan dto.Payload)
 var messageBuffer []dto.Payload
-var users = make(map[string]*websocket.Conn)
+var users = make(map[int]User)
+var pointer = -1
 
 func NewServer(host, pattern string, port int) *Server {
 	return &Server{
@@ -50,18 +56,17 @@ func (server *Server) ServerWebsocket() {
 
 func handleMessages() {
 	for msg := range broadcast {
+
 		messageBuffer = append(messageBuffer, msg)
 
 		fmt.Printf("User connected: %s\n", msg.Username)
 
-		for client := range clients {
-			users[msg.Username] = client
-			err := client.WriteJSON(msg)
+		for _, user := range users {
+			err := user.conn.WriteJSON(msg)
 			if err != nil {
 				fmt.Println(err)
-				client.Close()
-				delete(clients, client)
-				delete(users, msg.Username)
+				user.conn.Close()
+				deleteUserByPointer(user.pointer)
 			}
 		}
 	}
@@ -75,42 +80,61 @@ func handleConnections(w http.ResponseWriter, r *http.Request) {
 	}
 	defer func() {
 		username := getUsernameByConnection(conn)
+
 		fmt.Printf("User %s disconnected\n", username)
-		delete(clients, conn)
-		delete(users, username)
+
+		deleteUserByConnection(conn)
 		conn.Close()
 	}()
-
-	clients[conn] = true
 
 	for _, msg := range messageBuffer {
 		err := conn.WriteJSON(msg)
 		if err != nil {
-			delete(clients, conn)
-			delete(users, msg.Username)
+			deleteUserByConnection(conn)
 			fmt.Println(err)
 			conn.Close()
 			return
 		}
 	}
 
+	pointer++
+
 	for {
-		var msg dto.Payload
-		err := conn.ReadJSON(&msg)
+		var msgs dto.Payload
+		err := conn.ReadJSON(&msgs)
 		if err != nil {
 			fmt.Printf("Error reading message: %v\n", err)
 			break
 		}
 
-		broadcast <- msg
+		users[pointer] = User{
+			conn:     conn,
+			username: msgs.Username,
+			pointer:  pointer,
+		}
+
+		broadcast <- msgs
 	}
 }
 
 func getUsernameByConnection(conn *websocket.Conn) string {
-	for username, connection := range users {
-		if connection == conn {
-			return username
+	for _, user := range users {
+		if user.conn == conn {
+			return user.username
 		}
 	}
 	return ""
+}
+
+func deleteUserByConnection(conn *websocket.Conn) {
+	for k, user := range users {
+		if user.conn == conn {
+			delete(users, k)
+			return
+		}
+	}
+}
+
+func deleteUserByPointer(pointer int) {
+	delete(users, pointer)
 }
