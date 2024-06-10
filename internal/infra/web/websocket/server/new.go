@@ -34,6 +34,7 @@ var users = make(map[int]User)
 var pointer = -1
 var verifiedCon = make(map[string]bool)
 var verifiedDes = make(map[string]bool)
+var verifiedBuffer = make(map[string]bool)
 
 func NewServer(host, pattern string, port int) *Server {
 	return &Server{
@@ -64,6 +65,7 @@ func handleMessages() {
 		if verify(msg.Username, &verifiedCon) {
 			fmt.Printf("User connected: %s\n", msg.Username)
 			delete(verifiedDes, msg.Username)
+			sendSystemMessage(fmt.Sprintf("User %s connected", msg.Username))
 
 		}
 
@@ -91,6 +93,7 @@ func handleConnections(w http.ResponseWriter, r *http.Request) {
 		if verify(username, &verifiedDes) {
 			fmt.Printf("User %s disconnected\n", username)
 			delete(verifiedCon, username)
+			sendSystemMessage(fmt.Sprintf("User %s disconnected", username))
 		}
 
 		deleteUserByUserName(username, true)
@@ -154,4 +157,25 @@ func verify(s string, variable *map[string]bool) bool {
 		return true
 	}
 	return false
+}
+
+func sendSystemMessage(message string) {
+	systemMessage := dto.Payload{
+		Username: "Info",
+		Message:  message,
+	}
+
+	for _, user := range users {
+		err := user.conn.WriteJSON(systemMessage)
+
+		if verify(message, &verifiedBuffer) {
+			messageBuffer = append(messageBuffer, systemMessage)
+		}
+
+		if err != nil {
+			fmt.Println("Error sending system message:", err)
+			user.conn.Close()
+			deleteUserByUserName(user.username, false)
+		}
+	}
 }
