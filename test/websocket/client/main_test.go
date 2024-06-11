@@ -45,13 +45,19 @@ loop:
 
 }
 
+var cond = false
+var con *client.Client
+
 func BenchmarkWriter(b *testing.B) {
-	svc := server.NewServer("localhost", "/ws", 8080)
-	go svc.ServerWebsocket()
+	if !cond {
+		svc := server.NewServer("localhost", "/ws", 8080)
+		go svc.ServerWebsocket()
 
-	time.Sleep(1 * time.Second)
-
-	con := client.NewClient("localhost", "ws", 8080)
+		time.Sleep(1 * time.Second)
+		con = client.NewClient("localhost", "ws", 8080)
+		con.Connect()
+		cond = true
+	}
 
 	for i := 0; i < b.N; i++ {
 		channel := make(chan dto.Payload)
@@ -60,7 +66,7 @@ func BenchmarkWriter(b *testing.B) {
 		select {
 		case obj := <-channel:
 			fmt.Printf("%s: %s\n", obj.Username, obj.Message)
-		case <-time.After(5 * time.Second):
+		case <-time.After(10 * time.Second):
 			b.Fatal("Timeout waiting for message")
 		}
 

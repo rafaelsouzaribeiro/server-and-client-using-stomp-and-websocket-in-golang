@@ -10,6 +10,7 @@ import (
 func main() {
 
 	con := client.NewClient("localhost", "ws", 8080)
+	con.Connect()
 	channel := make(chan dto.Payload)
 	go con.ClientWebsocket("Client 1", "Hello 1", channel)
 
