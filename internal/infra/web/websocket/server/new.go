@@ -78,7 +78,7 @@ func handleMessages() {
 		mu.Lock()
 		for _, user := range users {
 			if verifiedUser[msg.Id] {
-				fmt.Printf("Duplicate ID found: %s\n", msg.Id)
+				//fmt.Printf("Duplicate ID found: %s\n", msg.Id)
 				continue
 			}
 			verifiedUser[msg.Id] = true
@@ -119,7 +119,7 @@ func handleConnections(w http.ResponseWriter, r *http.Request) {
 	for _, msg := range messageBufferMap {
 		for _, v := range msg {
 			if verifiedBuffer[v.Id] {
-				fmt.Printf("Duplicate ID found Buffer: %s\n", v.Id)
+				//fmt.Printf("Duplicate ID found Buffer: %s\n", v.Id)
 				continue
 			}
 			verifiedBuffer[v.Id] = true
@@ -195,20 +195,27 @@ func verify(s string, variable *map[string]bool) bool {
 }
 
 func sendSystemMessage(message, username string) {
-	// systemMessage := dto.Payload{
-	// 	Username: "Info",
-	// 	Message:  message,
-	// }
+	systemMessag := dto.Payload{
+		Username: "Info",
+		Message:  message,
+	}
 
-	// mu.Lock()
-	// defer mu.Unlock()
-	// for _, user := range users {
-	// 	err := user.conn.WriteJSON(systemMessage)
+	mu.Lock()
+	defer mu.Unlock()
+	for _, user := range users {
+		if SystemMessage[user.id] {
+			//fmt.Printf("Duplicate ID found Buffer: %s\n", v.Id)
+			continue
+		}
+		SystemMessage[user.id] = true
 
-	// 	if err != nil {
-	// 		fmt.Println("Error sending system message:", err)
-	// 		user.conn.Close()
-	// 		deleteUserByUserName(user.username, false)
-	// 	}
-	// }
+		err := user.conn.WriteJSON(systemMessag)
+
+		if err != nil {
+			fmt.Println("Error sending system message:", err)
+			user.conn.Close()
+			deleteUserByUserName(user.username, false)
+		}
+
+	}
 }
