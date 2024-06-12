@@ -16,7 +16,6 @@ func main() {
 			client := client.NewClient("localhost", "ws", 8080)
 			client.Connect()
 			client.ClientWebsocket(fmt.Sprintf("Client %d", i), fmt.Sprintf("Hello %d", i), channel)
-			client.Conn.Close()
 		}(i)
 	}
 
