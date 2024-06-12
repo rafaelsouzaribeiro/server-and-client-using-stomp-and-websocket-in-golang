@@ -10,4 +10,5 @@ type Payload struct {
 	Header      *frame.Header
 	ContentType string
 	Username    string `json:"username"`
+	Id          string
 }

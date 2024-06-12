@@ -9,13 +9,21 @@ import (
 
 func main() {
 
-	con := client.NewClient("localhost", "ws", 8080)
-	con.Connect()
 	channel := make(chan dto.Payload)
-	go con.ClientWebsocket("Client 1", "Hello 1", channel)
+
+	for i := 0; i < 2; i++ {
+		go func(i int) {
+			client := client.NewClient("localhost", "ws", 8080)
+			client.Connect()
+			client.ClientWebsocket(fmt.Sprintf("Client %d", i), fmt.Sprintf("Hello %d", i), channel)
+			client.Conn.Close()
+		}(i)
+	}
 
 	for obj := range channel {
 		fmt.Printf("%s: %s\n", obj.Username, obj.Message)
 	}
+
+	close(channel)
 
 }
