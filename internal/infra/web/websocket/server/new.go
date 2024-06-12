@@ -28,7 +28,6 @@ type User struct {
 	conn     *websocket.Conn
 	username string
 	id       string
-	Multiple bool
 }
 
 var broadcast = make(chan dto.Payload)
@@ -39,7 +38,6 @@ var verifiedDes = make(map[string]bool)
 var verifiedBuffer = make(map[string]bool)
 var verifiedUser = make(map[string]bool)
 var SystemMessage = make(map[string]bool)
-var cond = false
 var mu sync.Mutex
 
 func NewServer(host, pattern string, port int) *Server {
@@ -65,25 +63,34 @@ func (server *Server) ServerWebsocket() {
 
 func handleMessages() {
 	for msg := range broadcast {
+		mu.Lock()
 		messageBufferMap[msg.Id] = append(messageBufferMap[msg.Id], msg)
+		mu.Unlock()
 
 		if verify(msg.Username, &verifiedCon) {
 			fmt.Printf("User connected: %s\n", msg.Username)
+			mu.Lock()
 			delete(verifiedDes, msg.Username)
+			mu.Unlock()
 			sendSystemMessage(fmt.Sprintf("User %s connected", msg.Username), msg.Username)
 		}
 
+		mu.Lock()
 		for _, user := range users {
-			if verify(user.id, &verifiedUser) {
-				err := user.conn.WriteJSON(msg)
-				if err != nil {
-					fmt.Println(err)
-					user.conn.Close()
-					deleteUserByUserName(user.username, false)
-				}
+			if verifiedUser[msg.Id] {
+				fmt.Printf("Duplicate ID found: %s\n", msg.Username)
+				continue
+			}
+			verifiedUser[msg.Id] = true
+			println(">>", user.username)
+			err := user.conn.WriteJSON(msg)
+			if err != nil {
+				fmt.Println(err)
+				user.conn.Close()
+				deleteUserByUserName(user.username, false)
 			}
 		}
-
+		mu.Unlock()
 	}
 }
 
@@ -109,18 +116,25 @@ func handleConnections(w http.ResponseWriter, r *http.Request) {
 		conn.Close()
 	}()
 
+	mu.Lock()
 	for _, msg := range messageBufferMap {
 		for _, v := range msg {
+			if verifiedBuffer[v.Id] {
+				fmt.Printf("Duplicate ID found: %s\n", v.Id)
+				continue
+			}
+			verifiedBuffer[v.Id] = true
 			err := conn.WriteJSON(v)
 			if err != nil {
 				deleteUserByUserName(v.Username, false)
 				fmt.Println(err)
 				conn.Close()
+				mu.Unlock()
 				return
 			}
 		}
-
 	}
+	mu.Unlock()
 
 	for {
 		id := uuid.New().String()
@@ -137,14 +151,19 @@ func handleConnections(w http.ResponseWriter, r *http.Request) {
 			username: msgs.Username,
 			id:       id,
 		}
+		verifiedBuffer = make(map[string]bool)
+		verifiedUser = make(map[string]bool)
 		mu.Unlock()
 
 		msgs.Id = id
 		broadcast <- msgs
+
 	}
 }
 
 func getUsernameByConnection(conn *websocket.Conn) string {
+	mu.Lock()
+	defer mu.Unlock()
 	for _, user := range users {
 		if user.conn == conn {
 			return user.username
@@ -182,6 +201,8 @@ func sendSystemMessage(message, username string) {
 	// 	Message:  message,
 	// }
 
+	// mu.Lock()
+	// defer mu.Unlock()
 	// for _, user := range users {
 	// 	err := user.conn.WriteJSON(systemMessage)
 
