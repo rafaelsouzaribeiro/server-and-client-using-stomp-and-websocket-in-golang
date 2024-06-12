@@ -78,11 +78,10 @@ func handleMessages() {
 		mu.Lock()
 		for _, user := range users {
 			if verifiedUser[msg.Id] {
-				fmt.Printf("Duplicate ID found: %s\n", msg.Username)
+				fmt.Printf("Duplicate ID found: %s\n", msg.Id)
 				continue
 			}
 			verifiedUser[msg.Id] = true
-			println(">>", user.username)
 			err := user.conn.WriteJSON(msg)
 			if err != nil {
 				fmt.Println(err)
@@ -120,7 +119,7 @@ func handleConnections(w http.ResponseWriter, r *http.Request) {
 	for _, msg := range messageBufferMap {
 		for _, v := range msg {
 			if verifiedBuffer[v.Id] {
-				fmt.Printf("Duplicate ID found: %s\n", v.Id)
+				fmt.Printf("Duplicate ID found Buffer: %s\n", v.Id)
 				continue
 			}
 			verifiedBuffer[v.Id] = true
