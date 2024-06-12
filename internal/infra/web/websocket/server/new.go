@@ -37,7 +37,8 @@ var verifiedCon = make(map[string]bool)
 var verifiedDes = make(map[string]bool)
 var verifiedBuffer = make(map[string]bool)
 var verifiedUser = make(map[string]bool)
-var SystemMessage = make(map[string]bool)
+var messageConnnected = make(map[string]bool)
+var messageDisconnected = make(map[string]bool)
 var mu sync.Mutex
 
 func NewServer(host, pattern string, port int) *Server {
@@ -63,6 +64,7 @@ func (server *Server) ServerWebsocket() {
 
 func handleMessages() {
 	for msg := range broadcast {
+
 		mu.Lock()
 		messageBufferMap[msg.Id] = append(messageBufferMap[msg.Id], msg)
 		mu.Unlock()
@@ -72,7 +74,7 @@ func handleMessages() {
 			mu.Lock()
 			delete(verifiedDes, msg.Username)
 			mu.Unlock()
-			sendSystemMessage(fmt.Sprintf("User %s connected", msg.Username), msg.Username)
+			sendMessage(fmt.Sprintf("User %s connected", msg.Username), msg.Username, &messageConnnected)
 		}
 
 		mu.Lock()
@@ -108,7 +110,7 @@ func handleConnections(w http.ResponseWriter, r *http.Request) {
 			mu.Lock()
 			delete(verifiedCon, username)
 			mu.Unlock()
-			sendSystemMessage(fmt.Sprintf("User %s disconnected", username), username)
+			sendMessage(fmt.Sprintf("User %s disconnected", username), username, &messageDisconnected)
 		}
 
 		deleteUserByUserName(username, true)
@@ -152,6 +154,9 @@ func handleConnections(w http.ResponseWriter, r *http.Request) {
 		}
 		verifiedBuffer = make(map[string]bool)
 		verifiedUser = make(map[string]bool)
+		messageConnnected = make(map[string]bool)
+		messageDisconnected = make(map[string]bool)
+
 		mu.Unlock()
 
 		msgs.Id = id
@@ -194,7 +199,7 @@ func verify(s string, variable *map[string]bool) bool {
 	return false
 }
 
-func sendSystemMessage(message, username string) {
+func sendMessage(message, username string, variable *map[string]bool) {
 	systemMessag := dto.Payload{
 		Username: "Info",
 		Message:  message,
@@ -203,12 +208,12 @@ func sendSystemMessage(message, username string) {
 	mu.Lock()
 	defer mu.Unlock()
 	for _, user := range users {
-		if SystemMessage[user.id] {
+		if (*variable)[username] {
 			//fmt.Printf("Duplicate ID found Buffer: %s\n", v.Id)
 			continue
 		}
-		SystemMessage[user.id] = true
-
+		(*variable)[username] = true
+		println(user.username)
 		err := user.conn.WriteJSON(systemMessag)
 
 		if err != nil {
