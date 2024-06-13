@@ -3,9 +3,7 @@ package server
 import (
 	"fmt"
 	"net/http"
-	"sync"
 
-	"github.com/google/uuid"
 	"github.com/gorilla/websocket"
 	"github.com/rafaelsouzaribeiro/server-and-client-using-stomp-and-websocket-in-golang/internal/usecase/dto"
 )
@@ -27,19 +25,16 @@ var upgrader = websocket.Upgrader{
 type User struct {
 	conn     *websocket.Conn
 	username string
-	id       string
+	pointer  int
 }
 
 var broadcast = make(chan dto.Payload)
-var messageBufferMap = make(map[string][]dto.Payload)
-var users = make(map[string]User)
+var messageBuffer []dto.Payload
+var users = make(map[int]User)
+var pointer = -1
 var verifiedCon = make(map[string]bool)
 var verifiedDes = make(map[string]bool)
 var verifiedBuffer = make(map[string]bool)
-var verifiedUser = make(map[string]bool)
-var messageConnnected = make(map[string]bool)
-var messageDisconnected = make(map[string]bool)
-var mu sync.Mutex
 
 func NewServer(host, pattern string, port int) *Server {
 	return &Server{
@@ -65,25 +60,17 @@ func (server *Server) ServerWebsocket() {
 func handleMessages() {
 	for msg := range broadcast {
 
-		mu.Lock()
-		messageBufferMap[msg.Id] = append(messageBufferMap[msg.Id], msg)
-		mu.Unlock()
+		messageBuffer = append(messageBuffer, msg)
 
 		if verify(msg.Username, &verifiedCon) {
 			fmt.Printf("User connected: %s\n", msg.Username)
-			mu.Lock()
 			delete(verifiedDes, msg.Username)
-			mu.Unlock()
-			sendMessage(fmt.Sprintf("User %s connected", msg.Username), msg.Username, &messageConnnected)
+			sendSystemMessage(fmt.Sprintf("User %s connected", msg.Username))
+
 		}
 
-		mu.Lock()
 		for _, user := range users {
-			if verifiedUser[msg.Id] {
-				//fmt.Printf("Duplicate ID found: %s\n", msg.Id)
-				continue
-			}
-			verifiedUser[msg.Id] = true
+
 			err := user.conn.WriteJSON(msg)
 			if err != nil {
 				fmt.Println(err)
@@ -91,7 +78,6 @@ func handleMessages() {
 				deleteUserByUserName(user.username, false)
 			}
 		}
-		mu.Unlock()
 	}
 }
 
@@ -101,73 +87,50 @@ func handleConnections(w http.ResponseWriter, r *http.Request) {
 		fmt.Println(err)
 		return
 	}
-
 	defer func() {
 		username := getUsernameByConnection(conn)
 
 		if verify(username, &verifiedDes) {
 			fmt.Printf("User %s disconnected\n", username)
-			mu.Lock()
 			delete(verifiedCon, username)
-			mu.Unlock()
-			sendMessage(fmt.Sprintf("User %s disconnected", username), username, &messageDisconnected)
+			sendSystemMessage(fmt.Sprintf("User %s disconnected", username))
 		}
 
 		deleteUserByUserName(username, true)
 		conn.Close()
 	}()
 
-	mu.Lock()
-	for _, msg := range messageBufferMap {
-		for _, v := range msg {
-			if verifiedBuffer[v.Id] {
-				//fmt.Printf("Duplicate ID found Buffer: %s\n", v.Id)
-				continue
-			}
-			verifiedBuffer[v.Id] = true
-			err := conn.WriteJSON(v)
-			if err != nil {
-				deleteUserByUserName(v.Username, false)
-				fmt.Println(err)
-				conn.Close()
-				mu.Unlock()
-				return
-			}
+	for _, msg := range messageBuffer {
+		err := conn.WriteJSON(msg)
+		if err != nil {
+			deleteUserByUserName(msg.Username, false)
+			fmt.Println(err)
+			conn.Close()
+			return
 		}
 	}
-	mu.Unlock()
+
+	pointer++
 
 	for {
-		id := uuid.New().String()
-
 		var msgs dto.Payload
 		err := conn.ReadJSON(&msgs)
 		if err != nil {
+			//fmt.Printf("Error reading message: %v\n", err)
 			break
 		}
 
-		mu.Lock()
-		users[id] = User{
+		users[pointer] = User{
 			conn:     conn,
 			username: msgs.Username,
-			id:       id,
+			pointer:  pointer,
 		}
-		verifiedBuffer = make(map[string]bool)
-		verifiedUser = make(map[string]bool)
-		messageConnnected = make(map[string]bool)
-		messageDisconnected = make(map[string]bool)
 
-		mu.Unlock()
-
-		msgs.Id = id
 		broadcast <- msgs
-
 	}
 }
 
 func getUsernameByConnection(conn *websocket.Conn) string {
-	mu.Lock()
-	defer mu.Unlock()
 	for _, user := range users {
 		if user.conn == conn {
 			return user.username
@@ -177,50 +140,42 @@ func getUsernameByConnection(conn *websocket.Conn) string {
 }
 
 func deleteUserByUserName(username string, close bool) {
-	mu.Lock()
-	defer mu.Unlock()
 	for k, user := range users {
 		if user.username == username {
 			if close {
 				user.conn.Close()
 			}
+
 			delete(users, k)
 		}
 	}
 }
 
 func verify(s string, variable *map[string]bool) bool {
-	mu.Lock()
-	defer mu.Unlock()
-	if _, exists := (*variable)[s]; !exists {
+	if !(*variable)[s] {
 		(*variable)[s] = true
 		return true
 	}
 	return false
 }
 
-func sendMessage(message, username string, variable *map[string]bool) {
-	systemMessag := dto.Payload{
+func sendSystemMessage(message string) {
+	systemMessage := dto.Payload{
 		Username: "Info",
 		Message:  message,
 	}
 
-	mu.Lock()
-	defer mu.Unlock()
 	for _, user := range users {
-		if (*variable)[username] {
-			//fmt.Printf("Duplicate ID found Buffer: %s\n", v.Id)
-			continue
+		err := user.conn.WriteJSON(systemMessage)
+
+		if verify(message, &verifiedBuffer) {
+			messageBuffer = append(messageBuffer, systemMessage)
 		}
-		(*variable)[username] = true
-		println(user.username)
-		err := user.conn.WriteJSON(systemMessag)
 
 		if err != nil {
 			fmt.Println("Error sending system message:", err)
 			user.conn.Close()
 			deleteUserByUserName(user.username, false)
 		}
-
 	}
 }
