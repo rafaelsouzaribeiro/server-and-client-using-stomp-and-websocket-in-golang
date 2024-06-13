@@ -109,6 +109,7 @@ func handleConnections(w http.ResponseWriter, r *http.Request) {
 			fmt.Printf("User %s disconnected\n", username)
 			mu.Lock()
 			delete(verifiedCon, username)
+			delete(verifiedUser, username)
 			mu.Unlock()
 			println(username)
 			sendMessage(fmt.Sprintf("User %s disconnected", username), &messageDisconnected)
