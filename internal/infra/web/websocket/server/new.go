@@ -69,14 +69,13 @@ func handleMessages() {
 		messageBufferMap[msg.Id] = append(messageBufferMap[msg.Id], msg)
 		mu.Unlock()
 
-		if !verifiedCon[msg.Username] {
+		if verify(msg.Username, &verifiedCon) {
 			fmt.Printf("User connected: %s\n", msg.Username)
 			mu.Lock()
 			delete(verifiedDes, msg.Username)
 			mu.Unlock()
 			sendMessage(fmt.Sprintf("User %s connected", msg.Username), &messageConnnected)
 		}
-		verifiedCon[msg.Username] = true
 
 		// mu.Lock()
 		// for _, user := range users {
@@ -106,15 +105,14 @@ func handleConnections(w http.ResponseWriter, r *http.Request) {
 	defer func() {
 		username := getUsernameByConnection(conn)
 
-		if !verifiedDes[username] {
+		if verify(username, &verifiedDes) && verifyExistsUser(username) {
 			fmt.Printf("User %s disconnected\n", username)
 			mu.Lock()
 			delete(verifiedCon, username)
 			mu.Unlock()
-
-			sendMessageDesc(fmt.Sprintf("User %s disconnected", username), &messageDisconnected)
+			println(username)
+			sendMessage(fmt.Sprintf("User %s disconnected", username), &messageDisconnected)
 		}
-		verifiedDes[username] = true
 
 		deleteUserByUserName(username, true)
 		conn.Close()
@@ -141,12 +139,10 @@ func handleConnections(w http.ResponseWriter, r *http.Request) {
 	// mu.Unlock()
 
 	verifiedBuffer = make(map[string]bool)
-	verifiedUser = make(map[string]bool)
 	messageConnnected = make(map[string]bool)
 	messageDisconnected = make(map[string]bool)
 
 	for {
-		id := uuid.New().String()
 
 		var msgs dto.Payload
 		err := conn.ReadJSON(&msgs)
@@ -154,13 +150,25 @@ func handleConnections(w http.ResponseWriter, r *http.Request) {
 			break
 		}
 
+		if !verify(msgs.Username, &verifiedUser) {
+			systemMessag := dto.Payload{
+				Username: "info",
+				Message:  fmt.Sprintf("User already exists: %s\n", msgs.Username),
+			}
+
+			conn.WriteJSON(systemMessag)
+
+			continue
+		}
+
 		mu.Lock()
+		id := uuid.New().String()
+
 		users[id] = User{
 			conn:     conn,
 			username: msgs.Username,
 			id:       id,
 		}
-
 		mu.Unlock()
 
 		msgs.Id = id
@@ -169,6 +177,16 @@ func handleConnections(w http.ResponseWriter, r *http.Request) {
 	}
 }
 
+func verifyExistsUser(user string) bool {
+	for k := range verifiedUser {
+		if k == user {
+			return true
+		}
+
+	}
+
+	return false
+}
 func getUsernameByConnection(conn *websocket.Conn) string {
 	mu.Lock()
 	defer mu.Unlock()
@@ -208,31 +226,10 @@ func sendMessage(message string, variable *map[string]bool) {
 	mu.Lock()
 	defer mu.Unlock()
 	for _, user := range users {
-		if (*variable)[user.username] {
+		if (*variable)[user.id] {
 			continue
 		}
-		(*variable)[user.username] = true
-		systemMessag := dto.Payload{
-			Username: fmt.Sprintf("Info %s", user.username),
-			Message:  message,
-		}
-
-		err := user.conn.WriteJSON(systemMessag)
-
-		if err != nil {
-			fmt.Println("Error sending system message:", err)
-			user.conn.Close()
-			deleteUserByUserName(user.username, false)
-		}
-
-	}
-}
-
-func sendMessageDesc(message string, variable *map[string]bool) {
-
-	mu.Lock()
-	defer mu.Unlock()
-	for _, user := range users {
+		(*variable)[user.id] = true
 		systemMessag := dto.Payload{
 			Username: fmt.Sprintf("Info %s", user.username),
 			Message:  message,

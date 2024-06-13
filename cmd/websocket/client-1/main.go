@@ -23,6 +23,4 @@ func main() {
 		fmt.Printf("%s: %s\n", obj.Username, obj.Message)
 	}
 
-	close(channel)
-
 }
