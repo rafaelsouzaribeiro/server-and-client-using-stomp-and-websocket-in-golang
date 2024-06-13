@@ -153,7 +153,7 @@ func handleConnections(w http.ResponseWriter, r *http.Request) {
 		if !verify(msgs.Username, &verifiedUser) {
 			systemMessag := dto.Payload{
 				Username: "info",
-				Message:  fmt.Sprintf("User already exists: %s\n", msgs.Username),
+				Message:  fmt.Sprintf("User already exists: %s", msgs.Username),
 			}
 
 			conn.WriteJSON(systemMessag)
