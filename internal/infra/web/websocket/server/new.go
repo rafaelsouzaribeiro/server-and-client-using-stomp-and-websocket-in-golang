@@ -69,29 +69,30 @@ func handleMessages() {
 		messageBufferMap[msg.Id] = append(messageBufferMap[msg.Id], msg)
 		mu.Unlock()
 
-		if verify(msg.Username, &verifiedCon) {
+		if !verifiedCon[msg.Username] {
 			fmt.Printf("User connected: %s\n", msg.Username)
 			mu.Lock()
 			delete(verifiedDes, msg.Username)
 			mu.Unlock()
-			sendMessage(fmt.Sprintf("User %s connected", msg.Username), msg.Username, &messageConnnected)
+			sendMessage(fmt.Sprintf("User %s connected", msg.Username), &messageConnnected)
 		}
+		verifiedCon[msg.Username] = true
 
-		mu.Lock()
-		for _, user := range users {
-			if verifiedUser[msg.Id] {
-				//fmt.Printf("Duplicate ID found: %s\n", msg.Id)
-				continue
-			}
-			verifiedUser[msg.Id] = true
-			err := user.conn.WriteJSON(msg)
-			if err != nil {
-				fmt.Println(err)
-				user.conn.Close()
-				deleteUserByUserName(user.username, false)
-			}
-		}
-		mu.Unlock()
+		// mu.Lock()
+		// for _, user := range users {
+		// 	if verifiedUser[msg.Id] {
+		// 		//fmt.Printf("Duplicate ID found: %s\n", msg.Id)
+		// 		continue
+		// 	}
+		// 	verifiedUser[msg.Id] = true
+		// 	err := user.conn.WriteJSON(msg)
+		// 	if err != nil {
+		// 		fmt.Println(err)
+		// 		user.conn.Close()
+		// 		deleteUserByUserName(user.username, false)
+		// 	}
+		// }
+		// mu.Unlock()
 	}
 }
 
@@ -105,37 +106,44 @@ func handleConnections(w http.ResponseWriter, r *http.Request) {
 	defer func() {
 		username := getUsernameByConnection(conn)
 
-		if verify(username, &verifiedDes) {
+		if !verifiedDes[username] {
 			fmt.Printf("User %s disconnected\n", username)
 			mu.Lock()
 			delete(verifiedCon, username)
 			mu.Unlock()
-			sendMessage(fmt.Sprintf("User %s disconnected", username), username, &messageDisconnected)
+
+			sendMessageDesc(fmt.Sprintf("User %s disconnected", username), &messageDisconnected)
 		}
+		verifiedDes[username] = true
 
 		deleteUserByUserName(username, true)
 		conn.Close()
 	}()
 
-	mu.Lock()
-	for _, msg := range messageBufferMap {
-		for _, v := range msg {
-			if verifiedBuffer[v.Id] {
-				//fmt.Printf("Duplicate ID found Buffer: %s\n", v.Id)
-				continue
-			}
-			verifiedBuffer[v.Id] = true
-			err := conn.WriteJSON(v)
-			if err != nil {
-				deleteUserByUserName(v.Username, false)
-				fmt.Println(err)
-				conn.Close()
-				mu.Unlock()
-				return
-			}
-		}
-	}
-	mu.Unlock()
+	// mu.Lock()
+	// for _, msg := range messageBufferMap {
+	// 	for _, v := range msg {
+	// 		if verifiedBuffer[v.Id] {
+	// 			//fmt.Printf("Duplicate ID found Buffer: %s\n", v.Id)
+	// 			continue
+	// 		}
+	// 		verifiedBuffer[v.Id] = true
+	// 		err := conn.WriteJSON(v)
+	// 		if err != nil {
+	// 			deleteUserByUserName(v.Username, false)
+	// 			fmt.Println(err)
+	// 			conn.Close()
+	// 			mu.Unlock()
+	// 			return
+	// 		}
+	// 	}
+	// }
+	// mu.Unlock()
+
+	verifiedBuffer = make(map[string]bool)
+	verifiedUser = make(map[string]bool)
+	messageConnnected = make(map[string]bool)
+	messageDisconnected = make(map[string]bool)
 
 	for {
 		id := uuid.New().String()
@@ -152,10 +160,6 @@ func handleConnections(w http.ResponseWriter, r *http.Request) {
 			username: msgs.Username,
 			id:       id,
 		}
-		verifiedBuffer = make(map[string]bool)
-		verifiedUser = make(map[string]bool)
-		messageConnnected = make(map[string]bool)
-		messageDisconnected = make(map[string]bool)
 
 		mu.Unlock()
 
@@ -199,21 +203,41 @@ func verify(s string, variable *map[string]bool) bool {
 	return false
 }
 
-func sendMessage(message, username string, variable *map[string]bool) {
-	systemMessag := dto.Payload{
-		Username: "Info",
-		Message:  message,
-	}
+func sendMessage(message string, variable *map[string]bool) {
 
 	mu.Lock()
 	defer mu.Unlock()
 	for _, user := range users {
-		if (*variable)[username] {
-			//fmt.Printf("Duplicate ID found Buffer: %s\n", v.Id)
+		if (*variable)[user.username] {
 			continue
 		}
-		(*variable)[username] = true
-		println(user.username)
+		(*variable)[user.username] = true
+		systemMessag := dto.Payload{
+			Username: fmt.Sprintf("Info %s", user.username),
+			Message:  message,
+		}
+
+		err := user.conn.WriteJSON(systemMessag)
+
+		if err != nil {
+			fmt.Println("Error sending system message:", err)
+			user.conn.Close()
+			deleteUserByUserName(user.username, false)
+		}
+
+	}
+}
+
+func sendMessageDesc(message string, variable *map[string]bool) {
+
+	mu.Lock()
+	defer mu.Unlock()
+	for _, user := range users {
+		systemMessag := dto.Payload{
+			Username: fmt.Sprintf("Info %s", user.username),
+			Message:  message,
+		}
+
 		err := user.conn.WriteJSON(systemMessag)
 
 		if err != nil {
