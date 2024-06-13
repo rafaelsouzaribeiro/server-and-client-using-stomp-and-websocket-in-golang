@@ -34,19 +34,21 @@ func (client *Client) Connect() {
 
 func (client *Client) ClientWebsocket(username, message string, channel chan<- dto.Payload) {
 
-	//defer conn.Close()
+	//defer client.Conn.Close()
 
 	errs := client.Conn.WriteJSON(dto.Payload{Username: username, Message: message})
 	if errs != nil {
+
 		log.Println("Error writing message:", errs)
 		return
 	}
 
-	defer close(channel)
 	for {
 		var msg dto.Payload
 		err := client.Conn.ReadJSON(&msg)
+
 		if err != nil {
+
 			log.Println("Error reading message:", err)
 			return
 		}
