@@ -77,7 +77,8 @@ func handleMessages() {
 			mu.Unlock()
 
 		}
-		sendMessage(fmt.Sprintf("User %s connected", msg.Username), &messageConnnected)
+
+		sendMessage(fmt.Sprintf("User %s connected", msg.Username), msg.Username, &messageConnnected)
 		// mu.Lock()
 		// for _, user := range users {
 		// 	if verifiedUser[msg.Id] {
@@ -112,7 +113,6 @@ func handleConnections(w http.ResponseWriter, r *http.Request) {
 			delete(verifiedCon, username)
 			delete(verifiedUser, username)
 			mu.Unlock()
-			//sendMessage(fmt.Sprintf("User %s disconnected", username), &messageDisconnected)
 		}
 
 		mu.Lock()
@@ -235,15 +235,15 @@ func verify(s string, variable *map[string]bool) bool {
 	return false
 }
 
-func sendMessage(message string, variable *map[string]bool) {
+func sendMessage(message, username string, variable *map[string]bool) {
 
 	mu.Lock()
 	defer mu.Unlock()
 	for _, user := range users {
-		if (*variable)[user.username] {
+		if (*variable)[username] {
 			continue
 		}
-		(*variable)[user.username] = true
+		(*variable)[username] = true
 		systemMessag := dto.Payload{
 			Username: fmt.Sprintf("Info %s", user.username),
 			Message:  message,
