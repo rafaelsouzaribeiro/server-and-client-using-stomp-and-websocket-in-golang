@@ -75,8 +75,10 @@ func handleMessages() {
 			mu.Lock()
 			delete(verifiedDes, msg.Username)
 			mu.Unlock()
-			sendMessage(fmt.Sprintf("User %s connected", msg.Username), &messageConnnected)
+			//sendMessage(fmt.Sprintf("User %s connected", msg.Username), &messageConnnected)
 		}
+
+		sendMessage(fmt.Sprintf("User %s connected", msg.Username), &messageConnnected)
 
 		// mu.Lock()
 		// for _, user := range users {
