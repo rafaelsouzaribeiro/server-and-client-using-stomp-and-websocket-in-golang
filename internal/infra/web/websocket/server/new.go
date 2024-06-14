@@ -35,7 +35,8 @@ var messageBufferMap = make(map[string][]dto.Payload)
 var users = make(map[string]User)
 var verifiedCon = make(map[string]bool)
 var verifiedDes = make(map[string]bool)
-var verifiedBuffer = make(map[string]bool)
+
+// var verifiedBuffer = make(map[string]bool)
 var verifiedUser = make(map[string]bool)
 var messageConnnected = make(map[string]bool)
 var messageDisconnected = make(map[string]bool)
@@ -139,7 +140,7 @@ func handleConnections(w http.ResponseWriter, r *http.Request) {
 	// }
 	// mu.Unlock()
 
-	verifiedBuffer = make(map[string]bool)
+	//verifiedBuffer = make(map[string]bool)
 	messageConnnected = make(map[string]bool)
 	messageDisconnected = make(map[string]bool)
 
@@ -227,10 +228,10 @@ func sendMessage(message string, variable *map[string]bool) {
 	mu.Lock()
 	defer mu.Unlock()
 	for _, user := range users {
-		if (*variable)[user.id] {
+		if (*variable)[user.username] {
 			continue
 		}
-		(*variable)[user.id] = true
+		(*variable)[user.username] = true
 		systemMessag := dto.Payload{
 			Username: fmt.Sprintf("Info %s", user.username),
 			Message:  message,
