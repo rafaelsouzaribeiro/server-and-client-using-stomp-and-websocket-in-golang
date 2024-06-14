@@ -9,18 +9,17 @@ import (
 
 func main() {
 
-	channel := make(chan dto.Payload)
+	channel2 := make(chan dto.Payload)
 
 	for i := 2; i < 4; i++ {
 		go func(i int) {
 			client := client.NewClient("localhost", "ws", 8080)
 			client.Connect()
-			client.ClientWebsocket(fmt.Sprintf("Client %d", i), fmt.Sprintf("Hello %d", i), channel)
+			client.ClientWebsocket(fmt.Sprintf("Client %d", i), fmt.Sprintf("Hello %d", i), channel2)
 		}(i)
 	}
 
-	for obj := range channel {
-		fmt.Printf("%s: %s\n", obj.Username, obj.Message)
+	for objs := range channel2 {
+		fmt.Printf("%s: %s\n", objs.Username, objs.Message)
 	}
-
 }

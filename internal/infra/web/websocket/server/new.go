@@ -78,7 +78,25 @@ func handleMessages() {
 
 		}
 
-		sendMessage(fmt.Sprintf("User %s connected", msg.Username), msg.Username, &messageConnnected)
+		mu.Lock()
+
+		for _, user := range users {
+			systemMessag := dto.Payload{
+				Username: fmt.Sprintf("Info %s", user.username),
+				Message:  fmt.Sprintf("User %s connected", msg.Username),
+			}
+
+			err := user.conn.WriteJSON(systemMessag)
+
+			if err != nil {
+				fmt.Println("Error sending system message:", err)
+				user.conn.Close()
+				deleteUserByUserName(user.username, false)
+			}
+
+		}
+		mu.Unlock()
+		//sendMessage(fmt.Sprintf("User %s connected", msg.Username), msg.Username, &messageConnnected)
 		// mu.Lock()
 		// for _, user := range users {
 		// 	if verifiedUser[msg.Id] {
@@ -153,9 +171,6 @@ func handleConnections(w http.ResponseWriter, r *http.Request) {
 	// mu.Unlock()
 
 	//verifiedBuffer = make(map[string]bool)
-	messageConnnected = make(map[string]bool)
-	messageDisconnected = make(map[string]bool)
-
 	for {
 
 		var msgs dto.Payload
