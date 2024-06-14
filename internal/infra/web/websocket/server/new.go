@@ -81,6 +81,10 @@ func handleMessages() {
 		mu.Lock()
 
 		for _, user := range users {
+			if msg.Username != user.username {
+				continue
+			}
+
 			systemMessag := dto.Payload{
 				Username: fmt.Sprintf("Info %s", user.username),
 				Message:  fmt.Sprintf("User %s connected", msg.Username),
@@ -146,8 +150,10 @@ func handleConnections(w http.ResponseWriter, r *http.Request) {
 		}
 		mu.Unlock()
 
-		deleteUserByUserName(username, true)
-		conn.Close()
+		if username != "" {
+			deleteUserByUserName(username, true)
+			conn.Close()
+		}
 	}()
 
 	// mu.Lock()
@@ -171,6 +177,7 @@ func handleConnections(w http.ResponseWriter, r *http.Request) {
 	// mu.Unlock()
 
 	//verifiedBuffer = make(map[string]bool)
+
 	for {
 
 		var msgs dto.Payload
@@ -204,6 +211,20 @@ func handleConnections(w http.ResponseWriter, r *http.Request) {
 		broadcast <- msgs
 
 	}
+}
+
+func removeDuplicates(originalMap map[string]User) map[string]User {
+	newMap := make(map[string]User)
+	seen := make(map[string]bool)
+
+	for key, value := range originalMap {
+		if !seen[key] {
+			seen[key] = true
+			newMap[key] = value
+		}
+	}
+
+	return newMap
 }
 
 func verifyExistsUser(user string) bool {
