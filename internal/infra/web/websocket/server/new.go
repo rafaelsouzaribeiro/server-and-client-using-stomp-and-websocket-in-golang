@@ -112,8 +112,22 @@ func handleConnections(w http.ResponseWriter, r *http.Request) {
 			delete(verifiedCon, username)
 			delete(verifiedUser, username)
 			mu.Unlock()
-			println(username)
-			sendMessage(fmt.Sprintf("User %s disconnected", username), &messageDisconnected)
+			//sendMessage(fmt.Sprintf("User %s disconnected", username), &messageDisconnected)
+		}
+
+		for _, user := range users {
+			systemMessag := dto.Payload{
+				Username: fmt.Sprintf("Info %s", user.username),
+				Message:  fmt.Sprintf("User %s disconnected", username),
+			}
+
+			err := user.conn.WriteJSON(systemMessag)
+
+			if err != nil {
+				user.conn.Close()
+				deleteUserByUserName(user.username, false)
+			}
+
 		}
 
 		deleteUserByUserName(username, true)
