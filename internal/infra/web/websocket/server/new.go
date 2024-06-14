@@ -81,10 +81,6 @@ func handleMessages() {
 		mu.Lock()
 
 		for _, user := range users {
-			if messageConnnected[user.username] {
-				continue
-			}
-			messageConnnected[user.username] = true
 			systemMessag := dto.Payload{
 				Username: fmt.Sprintf("Info %s", user.username),
 				Message:  fmt.Sprintf("User %s connected", msg.Username),
@@ -144,7 +140,7 @@ func handleConnections(w http.ResponseWriter, r *http.Request) {
 					Username: fmt.Sprintf("Info %s", user.username),
 					Message:  fmt.Sprintf("User %s disconnected", username),
 				}
-				delete(messageConnnected, username)
+
 				_ = user.conn.WriteJSON(systemMessag)
 			}
 		}
