@@ -65,6 +65,7 @@ func (server *Server) ServerWebsocket() {
 
 func handleMessages() {
 	for msg := range broadcast {
+		println(msg.Username)
 
 		mu.Lock()
 		messageBufferMap[msg.Id] = append(messageBufferMap[msg.Id], msg)
@@ -81,10 +82,6 @@ func handleMessages() {
 		mu.Lock()
 
 		for _, user := range users {
-			if msg.Username != user.username {
-				continue
-			}
-
 			systemMessag := dto.Payload{
 				Username: fmt.Sprintf("Info %s", user.username),
 				Message:  fmt.Sprintf("User %s connected", msg.Username),
