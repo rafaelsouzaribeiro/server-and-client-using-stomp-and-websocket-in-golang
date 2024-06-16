@@ -36,7 +36,7 @@ var users = make(map[string]User)
 var verifiedCon = make(map[string]bool)
 var verifiedDes = make(map[string]bool)
 
-// var verifiedBuffer = make(map[string]bool)
+var verifiedBuffer = make(map[string]bool)
 var verifiedUser = make(map[string]bool)
 var messageConnnected = make(map[string]bool)
 var messageDisconnected = make(map[string]bool)
@@ -67,10 +67,6 @@ func handleMessages() {
 	for msg := range broadcast {
 		println(msg.Username)
 
-		mu.Lock()
-		messageBufferMap[msg.Id] = append(messageBufferMap[msg.Id], msg)
-		mu.Unlock()
-
 		if verify(msg.Username, &verifiedCon) {
 			fmt.Printf("User connected: %s\n", msg.Username)
 			mu.Lock()
@@ -82,12 +78,26 @@ func handleMessages() {
 		mu.Lock()
 
 		for _, user := range users {
+			if user.username != msg.Username {
+				continue
+			}
+
 			systemMessag := dto.Payload{
 				Username: fmt.Sprintf("Info %s", user.username),
 				Message:  fmt.Sprintf("User %s connected", msg.Username),
 			}
 
+			messageBufferMap[user.username] = append(messageBufferMap[user.username], systemMessag)
 			err := user.conn.WriteJSON(systemMessag)
+
+			if err != nil {
+				fmt.Println("Error sending system message:", err)
+				user.conn.Close()
+				deleteUserByUserName(user.username, false)
+			}
+
+			messageBufferMap[user.username] = append(messageBufferMap[user.username], msg)
+			err = user.conn.WriteJSON(msg)
 
 			if err != nil {
 				fmt.Println("Error sending system message:", err)
@@ -97,22 +107,6 @@ func handleMessages() {
 
 		}
 		mu.Unlock()
-		//sendMessage(fmt.Sprintf("User %s connected", msg.Username), msg.Username, &messageConnnected)
-		// mu.Lock()
-		// for _, user := range users {
-		// 	if verifiedUser[msg.Id] {
-		// 		//fmt.Printf("Duplicate ID found: %s\n", msg.Id)
-		// 		continue
-		// 	}
-		// 	verifiedUser[msg.Id] = true
-		// 	err := user.conn.WriteJSON(msg)
-		// 	if err != nil {
-		// 		fmt.Println(err)
-		// 		user.conn.Close()
-		// 		deleteUserByUserName(user.username, false)
-		// 	}
-		// }
-		// mu.Unlock()
 	}
 }
 
@@ -153,27 +147,24 @@ func handleConnections(w http.ResponseWriter, r *http.Request) {
 		}
 	}()
 
-	// mu.Lock()
-	// for _, msg := range messageBufferMap {
-	// 	for _, v := range msg {
-	// 		if verifiedBuffer[v.Id] {
-	// 			//fmt.Printf("Duplicate ID found Buffer: %s\n", v.Id)
-	// 			continue
-	// 		}
-	// 		verifiedBuffer[v.Id] = true
-	// 		err := conn.WriteJSON(v)
-	// 		if err != nil {
-	// 			deleteUserByUserName(v.Username, false)
-	// 			fmt.Println(err)
-	// 			conn.Close()
-	// 			mu.Unlock()
-	// 			return
-	// 		}
-	// 	}
-	// }
-	// mu.Unlock()
-
-	//verifiedBuffer = make(map[string]bool)
+	mu.Lock()
+	for _, msg := range messageBufferMap {
+		for _, v := range msg {
+			if verifiedBuffer[v.Username] {
+				continue
+			}
+			verifiedBuffer[v.Username] = true
+			err := conn.WriteJSON(v)
+			if err != nil {
+				deleteUserByUserName(v.Username, false)
+				fmt.Println(err)
+				conn.Close()
+				mu.Unlock()
+				return
+			}
+		}
+	}
+	mu.Unlock()
 
 	for {
 
@@ -208,20 +199,6 @@ func handleConnections(w http.ResponseWriter, r *http.Request) {
 		broadcast <- msgs
 
 	}
-}
-
-func removeDuplicates(originalMap map[string]User) map[string]User {
-	newMap := make(map[string]User)
-	seen := make(map[string]bool)
-
-	for key, value := range originalMap {
-		if !seen[key] {
-			seen[key] = true
-			newMap[key] = value
-		}
-	}
-
-	return newMap
 }
 
 func verifyExistsUser(user string) bool {
@@ -266,29 +243,4 @@ func verify(s string, variable *map[string]bool) bool {
 		return true
 	}
 	return false
-}
-
-func sendMessage(message, username string, variable *map[string]bool) {
-
-	mu.Lock()
-	defer mu.Unlock()
-	for _, user := range users {
-		if (*variable)[username] {
-			continue
-		}
-		(*variable)[username] = true
-		systemMessag := dto.Payload{
-			Username: fmt.Sprintf("Info %s", user.username),
-			Message:  message,
-		}
-
-		err := user.conn.WriteJSON(systemMessag)
-
-		if err != nil {
-			fmt.Println("Error sending system message:", err)
-			user.conn.Close()
-			deleteUserByUserName(user.username, false)
-		}
-
-	}
 }
