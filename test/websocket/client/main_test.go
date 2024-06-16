@@ -19,6 +19,7 @@ func TestSystemMessages(t *testing.T) {
 
 	con := client.NewClient("localhost", "ws", 8080)
 	channel := make(chan dto.Payload)
+	con.Connect()
 	go con.ClientWebsocket("Client 1", "Hello 1", channel)
 
 	var messages []dto.Payload
@@ -46,10 +47,14 @@ loop:
 }
 
 func BenchmarkWriter(b *testing.B) {
+	svc := server.NewServer("localhost", "/ws", 8080)
+	go svc.ServerWebsocket()
+
+	time.Sleep(1 * time.Second)
 
 	var channel = make(chan dto.Payload)
 
-	for i := 0; i < 100; i++ {
+	for i := 0; i < b.N; i++ {
 		go func(i int) {
 			client := client.NewClient("localhost", "ws", 8080)
 			client.Connect()

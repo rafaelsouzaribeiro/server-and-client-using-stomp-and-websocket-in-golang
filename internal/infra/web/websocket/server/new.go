@@ -32,8 +32,6 @@ type User struct {
 
 var broadcast = make(chan dto.Payload)
 var users = make(map[string]User)
-var verifiedCon = make(map[string]bool)
-var verifiedDes = make(map[string]bool)
 var verifiedUser = make(map[string]*websocket.Conn)
 var mu sync.Mutex
 
@@ -61,13 +59,7 @@ func (server *Server) ServerWebsocket() {
 func handleMessages() {
 	for msg := range broadcast {
 
-		if verify(msg.Username, &verifiedCon) {
-			fmt.Printf("User connected: %s\n", msg.Username)
-			mu.Lock()
-			delete(verifiedDes, msg.Username)
-			mu.Unlock()
-
-		}
+		fmt.Printf("User connected: %s\n", msg.Username)
 
 		mu.Lock()
 
@@ -113,12 +105,8 @@ func handleConnections(w http.ResponseWriter, r *http.Request) {
 	defer func() {
 		username := getUsernameByConnection(conn)
 
-		if verify(username, &verifiedDes) && verifyExistsUser(username, conn) {
+		if verifyExistsUser(username, conn) {
 			fmt.Printf("User %s disconnected\n", username)
-			mu.Lock()
-			delete(verifiedCon, username)
-			delete(verifiedUser, username)
-			mu.Unlock()
 		}
 
 		if username != "" {
