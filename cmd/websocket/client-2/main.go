@@ -14,6 +14,7 @@ func main() {
 	for i := 2; i < 4; i++ {
 		go func(i int) {
 			client := client.NewClient("localhost", "ws", 8080)
+			defer client.Conn.Close()
 			client.Connect()
 			client.ClientWebsocket(fmt.Sprintf("Client %d", i), fmt.Sprintf("Hello %d", i), channel2)
 		}(i)
@@ -22,4 +23,6 @@ func main() {
 	for objs := range channel2 {
 		fmt.Printf("%s: %s\n", objs.Username, objs.Message)
 	}
+
+	close(channel2)
 }

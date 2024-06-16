@@ -34,6 +34,7 @@ var broadcast = make(chan dto.Payload)
 var users = make(map[string]User)
 var verifiedCon = make(map[string]bool)
 var verifiedDes = make(map[string]bool)
+var verifiedUser = make(map[string]*websocket.Conn)
 var mu sync.Mutex
 
 func NewServer(host, pattern string, port int) *Server {
@@ -112,10 +113,11 @@ func handleConnections(w http.ResponseWriter, r *http.Request) {
 	defer func() {
 		username := getUsernameByConnection(conn)
 
-		if verify(username, &verifiedDes) {
+		if verify(username, &verifiedDes) && verifyExistsUser(username, conn) {
 			fmt.Printf("User %s disconnected\n", username)
 			mu.Lock()
 			delete(verifiedCon, username)
+			delete(verifiedUser, username)
 			mu.Unlock()
 		}
 
@@ -134,6 +136,22 @@ func handleConnections(w http.ResponseWriter, r *http.Request) {
 		}
 
 		mu.Lock()
+
+		if !verifyExistsUser(msgs.Username, conn) {
+			systemMessag := dto.Payload{
+				Username: "info",
+				Message:  fmt.Sprintf("User already exists: %s", msgs.Username),
+			}
+
+			fmt.Printf("User already exists: %s\n", msgs.Username)
+
+			conn.WriteJSON(systemMessag)
+
+			continue
+		} else {
+			verifiedUser[msgs.Username] = conn
+		}
+
 		id := uuid.New().String()
 
 		users[id] = User{
@@ -141,6 +159,7 @@ func handleConnections(w http.ResponseWriter, r *http.Request) {
 			username: msgs.Username,
 			id:       id,
 		}
+
 		mu.Unlock()
 
 		msgs.Id = id
@@ -171,6 +190,17 @@ func deleteUserByUserName(username string, close bool) {
 			delete(users, k)
 		}
 	}
+}
+
+func verifyExistsUser(user string, conn *websocket.Conn) bool {
+	for k, v := range verifiedUser {
+		if v != conn && k == user {
+			return false
+		}
+
+	}
+
+	return true
 }
 
 func verify(s string, variable *map[string]bool) bool {
