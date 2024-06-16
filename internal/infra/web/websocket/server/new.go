@@ -35,7 +35,6 @@ var messageBufferMap = make(map[string][]dto.Payload)
 var users = make(map[string]User)
 var verifiedCon = make(map[string]bool)
 var verifiedDes = make(map[string]bool)
-
 var verifiedBuffer = make(map[string]bool)
 var mu sync.Mutex
 
