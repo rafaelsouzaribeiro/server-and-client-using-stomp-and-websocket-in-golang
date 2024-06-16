@@ -31,11 +31,9 @@ type User struct {
 }
 
 var broadcast = make(chan dto.Payload)
-var messageBufferMap = make(map[string][]dto.Payload)
 var users = make(map[string]User)
 var verifiedCon = make(map[string]bool)
 var verifiedDes = make(map[string]bool)
-var verifiedBuffer = make(map[string]bool)
 var mu sync.Mutex
 
 func NewServer(host, pattern string, port int) *Server {
@@ -82,7 +80,7 @@ func handleMessages() {
 				Message:  fmt.Sprintf("User %s connected", msg.Username),
 			}
 
-			messageBufferMap[user.username] = append(messageBufferMap[user.username], systemMessag)
+			fmt.Printf("%s : %s \n", user.username, msg.Message)
 			err := user.conn.WriteJSON(systemMessag)
 
 			if err != nil {
@@ -91,7 +89,6 @@ func handleMessages() {
 				deleteUserByUserName(user.username, false)
 			}
 
-			messageBufferMap[user.username] = append(messageBufferMap[user.username], msg)
 			err = user.conn.WriteJSON(msg)
 
 			if err != nil {
@@ -140,25 +137,6 @@ func handleConnections(w http.ResponseWriter, r *http.Request) {
 			conn.Close()
 		}
 	}()
-
-	mu.Lock()
-	for _, msg := range messageBufferMap {
-		for _, v := range msg {
-			if verifiedBuffer[v.Username] {
-				continue
-			}
-			verifiedBuffer[v.Username] = true
-			err := conn.WriteJSON(v)
-			if err != nil {
-				deleteUserByUserName(v.Username, false)
-				fmt.Println(err)
-				conn.Close()
-				mu.Unlock()
-				return
-			}
-		}
-	}
-	mu.Unlock()
 
 	for {
 
