@@ -61,7 +61,6 @@ func (server *Server) ServerWebsocket() {
 
 func handleMessages() {
 	for msg := range broadcast {
-		println(msg.Username)
 
 		if verify(msg.Username, &verifiedCon) {
 			fmt.Printf("User connected: %s\n", msg.Username)
