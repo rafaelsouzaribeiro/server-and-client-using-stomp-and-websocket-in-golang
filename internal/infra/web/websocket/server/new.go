@@ -37,9 +37,6 @@ var verifiedCon = make(map[string]bool)
 var verifiedDes = make(map[string]bool)
 
 var verifiedBuffer = make(map[string]bool)
-var verifiedUser = make(map[string]bool)
-var messageConnnected = make(map[string]bool)
-var messageDisconnected = make(map[string]bool)
 var mu sync.Mutex
 
 func NewServer(host, pattern string, port int) *Server {
@@ -120,11 +117,10 @@ func handleConnections(w http.ResponseWriter, r *http.Request) {
 	defer func() {
 		username := getUsernameByConnection(conn)
 
-		if verify(username, &verifiedDes) && verifyExistsUser(username) {
+		if verify(username, &verifiedDes) {
 			fmt.Printf("User %s disconnected\n", username)
 			mu.Lock()
 			delete(verifiedCon, username)
-			delete(verifiedUser, username)
 			mu.Unlock()
 		}
 
@@ -174,17 +170,6 @@ func handleConnections(w http.ResponseWriter, r *http.Request) {
 			break
 		}
 
-		if !verify(msgs.Username, &verifiedUser) {
-			systemMessag := dto.Payload{
-				Username: "info",
-				Message:  fmt.Sprintf("User already exists: %s", msgs.Username),
-			}
-
-			conn.WriteJSON(systemMessag)
-
-			continue
-		}
-
 		mu.Lock()
 		id := uuid.New().String()
 
@@ -201,16 +186,6 @@ func handleConnections(w http.ResponseWriter, r *http.Request) {
 	}
 }
 
-func verifyExistsUser(user string) bool {
-	for k := range verifiedUser {
-		if k == user {
-			return true
-		}
-
-	}
-
-	return false
-}
 func getUsernameByConnection(conn *websocket.Conn) string {
 	mu.Lock()
 	defer mu.Unlock()
