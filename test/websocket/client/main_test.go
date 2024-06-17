@@ -52,18 +52,38 @@ func BenchmarkWriter(b *testing.B) {
 
 	time.Sleep(1 * time.Second)
 
-	var channel = make(chan dto.Payload)
+	channel := make(chan dto.Payload)
+	var messages []dto.Payload
+
+	b.ResetTimer()
 
 	for i := 0; i < b.N; i++ {
 		go func(i int) {
 			client := client.NewClient("localhost", "ws", 8080)
+			defer client.Conn.Close()
 			client.Connect()
 			client.ClientWebsocket(fmt.Sprintf("Client %d", i), fmt.Sprintf("Hello %d", i), channel)
 		}(i)
 	}
 
-	for obj := range channel {
-		fmt.Printf("%s: %s\n", obj.Username, obj.Message)
+	timeout := time.After(5 * time.Second)
+loop:
+	for {
+		select {
+		case msg := <-channel:
+			messages = append(messages, msg)
+		case <-timeout:
+			break loop
+		}
 	}
 
+	for k, msg := range messages {
+		c := fmt.Sprintf("Info %s %d: User %s %d connected", "Client ", k, "Client ", k)
+		d := fmt.Sprintf("Client %d: Hello %d", k, k)
+
+		if msg.Username == c {
+			assert.Contains(b, msg.Message, d)
+		}
+
+	}
 }
