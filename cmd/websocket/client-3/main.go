@@ -8,10 +8,9 @@ import (
 )
 
 func main() {
-	channels := make(chan dto.Payload)
 	client := client.NewClient("localhost", "ws", 8080)
 	client.Connect()
-	client.Channel = channels
+	client.Channel = make(chan dto.Payload)
 	defer client.Conn.Close()
 
 	go client.Listen()
