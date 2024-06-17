@@ -127,6 +127,7 @@ func handleConnections(w http.ResponseWriter, r *http.Request) {
 			}
 
 			fmt.Printf("User already exists: %s\n", msgs.Username)
+			deleteUserByConn(conn, false)
 
 			conn.WriteJSON(systemMessag)
 			continue
@@ -166,6 +167,19 @@ func deleteUserByUserName(username string, close bool) {
 	defer mu.Unlock()
 	for k, user := range users {
 		if user.username == username {
+			if close {
+				user.conn.Close()
+			}
+			delete(users, k)
+		}
+	}
+}
+
+func deleteUserByConn(conn *websocket.Conn, close bool) {
+	mu.Lock()
+	defer mu.Unlock()
+	for k, user := range users {
+		if user.conn == conn {
 			if close {
 				user.conn.Close()
 			}
