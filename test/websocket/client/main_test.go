@@ -55,6 +55,8 @@ func startServer() {
 	time.Sleep(1 * time.Second)
 }
 
+var count int = 0
+
 func BenchmarkWriter(b *testing.B) {
 	once.Do(startServer)
 
@@ -62,12 +64,13 @@ func BenchmarkWriter(b *testing.B) {
 	var messages []dto.Payload
 
 	for i := 0; i < b.N; i++ {
-		go func(i int) {
+		count++
+		go func(count int) {
 			client := client.NewClient("localhost", "ws", 8080)
 			defer client.Conn.Close()
 			client.Connect()
-			client.ClientWebsocket(fmt.Sprintf("Client %d", i), fmt.Sprintf("Hello %d", i), channel)
-		}(i)
+			client.ClientWebsocket(fmt.Sprintf("Client %d", count), fmt.Sprintf("Hello %d", count), channel)
+		}(count)
 	}
 
 	timeout := time.After(5 * time.Second)
