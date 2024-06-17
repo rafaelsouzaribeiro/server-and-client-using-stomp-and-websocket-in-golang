@@ -2,6 +2,7 @@ package main
 
 import (
 	"fmt"
+	"sync"
 	"testing"
 	"time"
 
@@ -46,16 +47,19 @@ loop:
 
 }
 
-func BenchmarkWriter(b *testing.B) {
+var once sync.Once
+
+func startServer() {
 	svc := server.NewServer("localhost", "/ws", 8080)
 	go svc.ServerWebsocket()
-
 	time.Sleep(1 * time.Second)
+}
+
+func BenchmarkWriter(b *testing.B) {
+	once.Do(startServer)
 
 	channel := make(chan dto.Payload)
 	var messages []dto.Payload
-
-	b.ResetTimer()
 
 	for i := 0; i < b.N; i++ {
 		go func(i int) {
