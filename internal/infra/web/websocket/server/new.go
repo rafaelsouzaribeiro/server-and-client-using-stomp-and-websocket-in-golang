@@ -58,39 +58,32 @@ func (server *Server) ServerWebsocket() {
 func handleMessages() {
 	for msg := range broadcast {
 
+		mu.Lock()
 		fmt.Printf("User connected: %s\n", msg.Username)
 
-		mu.Lock()
+		systemMessag := dto.Payload{
+			Username: fmt.Sprintf("Info %s", msg.Username),
+			Message:  fmt.Sprintf("User %s connected", msg.Username),
+		}
 
-		for _, user := range users {
-			if user.username != msg.Username {
-				continue
-			}
+		fmt.Printf("%s : %s \n", msg.Username, msg.Message)
+		err := msg.Conn.WriteJSON(systemMessag)
 
-			systemMessag := dto.Payload{
-				Username: fmt.Sprintf("Info %s", user.username),
-				Message:  fmt.Sprintf("User %s connected", msg.Username),
-			}
+		if err != nil {
+			fmt.Println("Error sending system message:", err)
+			msg.Conn.Close()
+			deleteUserByUserName(msg.Username, false)
+		}
 
-			fmt.Printf("%s : %s \n", user.username, msg.Message)
-			err := user.conn.WriteJSON(systemMessag)
+		err = msg.Conn.WriteJSON(msg)
 
-			if err != nil {
-				fmt.Println("Error sending system message:", err)
-				user.conn.Close()
-				deleteUserByUserName(user.username, false)
-			}
-
-			err = user.conn.WriteJSON(msg)
-
-			if err != nil {
-				fmt.Println("Error sending system message:", err)
-				user.conn.Close()
-				deleteUserByUserName(user.username, false)
-			}
-
+		if err != nil {
+			fmt.Println("Error sending system message:", err)
+			msg.Conn.Close()
+			deleteUserByUserName(msg.Username, false)
 		}
 		mu.Unlock()
+
 	}
 }
 
@@ -146,6 +139,7 @@ func handleConnections(w http.ResponseWriter, r *http.Request) {
 		mu.Unlock()
 
 		msgs.Id = id
+		msgs.Conn = conn
 		broadcast <- msgs
 
 	}

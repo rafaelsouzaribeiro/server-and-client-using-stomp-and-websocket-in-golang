@@ -2,6 +2,7 @@ package dto
 
 import (
 	"github.com/go-stomp/stomp/v3/frame"
+	"github.com/gorilla/websocket"
 )
 
 type Payload struct {
@@ -11,4 +12,5 @@ type Payload struct {
 	ContentType string
 	Username    string `json:"username"`
 	Id          string
+	Conn        *websocket.Conn
 }
