@@ -1,6 +1,6 @@
 Server and client using STOMP and WebSocket. WebSocket provides notifications for logged-in and logged-out users, and STOMP authentication.
 
-For multiple messages the username is linked to a connection so whenever you send more than one message to the username you need to use client.Connect()
+For multiple messages on the websocket, the username is linked to a connection, so whenever you send more than one message to the username, you need to use client.Connect()
 
  ```go
 package main
