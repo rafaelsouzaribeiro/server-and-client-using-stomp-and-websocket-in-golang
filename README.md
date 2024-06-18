@@ -41,7 +41,7 @@ func main() {
 }
 
 ```
-only use the username for the call
+only one call per username
 
  ```go
 package main
