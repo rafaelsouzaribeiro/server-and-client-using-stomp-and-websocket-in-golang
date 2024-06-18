@@ -41,7 +41,7 @@ func main() {
 }
 
 ```
-only one call per username
+send messages to a single username
 
  ```go
 package main
