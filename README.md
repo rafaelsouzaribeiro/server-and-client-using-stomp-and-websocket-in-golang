@@ -41,7 +41,7 @@ func main() {
 }
 
 ```
-send messages to a single username
+send messages to only the specific username
 
  ```go
 package main
