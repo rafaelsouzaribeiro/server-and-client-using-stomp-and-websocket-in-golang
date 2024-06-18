@@ -3,7 +3,7 @@ Server and client using STOMP and WebSocket. WebSocket provides notifications fo
 For multiple messages on the websocket, the username is linked to a connection, so whenever you send more than one message to the username, you need to use client.Connect()
 
  ```go
-package main
+ppackage main
 
 import (
 	"fmt"
@@ -13,21 +13,31 @@ import (
 )
 
 func main() {
-	client := client.NewClient("localhost", "ws", 8080)
-	client.Connect()
-	client.Channel = make(chan dto.Payload)
-	defer client.Conn.Close()
+	channel := make(chan dto.Payload)
 
-	go client.Listen()
+	client3 := client.NewClient("localhost", "ws", 8080)
+	client3.Channel = channel
+
+	client4 := client.NewClient("localhost", "ws", 8080)
+	client4.Channel = channel
 
 	go func() {
-		client.Send("Client 3", "Hello 3")
-		client.Send("Client 3", "Hello 4")
+		client3.Connect()
+		go client3.Listen()
+		client3.Send("Client 3", "Hello 3.1")
+		client3.Send("Client 3", "Hello 3.2")
 	}()
 
-	for obj := range client.Channel {
-		fmt.Printf("%s: %s\n", obj.Username, obj.Message)
-	}
+	go func() {
+		client4.Connect()
+		go client4.Listen()
+		client4.Send("Client 4", "Hello 4.1")
+		client4.Send("Client 4", "Hello 4.2")
+	}()
 
+	for msg := range channel {
+		fmt.Printf("%s: %s\n", msg.Username, msg.Message)
+	}
 }
+
 ```
