@@ -32,6 +32,7 @@ type User struct {
 
 var broadcast = make(chan dto.Payload)
 var users = make(map[string]User)
+var messageConnnected = make((map[string]bool))
 var mu sync.Mutex
 
 func NewServer(host, pattern string, port int) *Server {
@@ -59,7 +60,9 @@ func handleMessages() {
 	for msg := range broadcast {
 
 		mu.Lock()
-		fmt.Printf("User connected: %s\n", msg.Username)
+		if verify(msg.Username, &messageConnnected) {
+			fmt.Printf("User connected: %s\n", msg.Username)
+		}
 
 		systemMessag := dto.Payload{
 			Username: fmt.Sprintf("Info %s", msg.Username),
@@ -100,6 +103,7 @@ func handleConnections(w http.ResponseWriter, r *http.Request) {
 		if username != "" {
 			fmt.Printf("User %s disconnected\n", username)
 			deleteUserByUserName(username, true)
+			delete(messageConnnected, username)
 			conn.Close()
 		}
 
@@ -191,4 +195,13 @@ func verifyExistsUser(u string, conn *websocket.Conn) bool {
 	}
 
 	return true
+}
+
+func verify(s string, variable *map[string]bool) bool {
+	if _, exists := (*variable)[s]; !exists {
+		(*variable)[s] = true
+		return true
+	}
+	return false
+
 }
