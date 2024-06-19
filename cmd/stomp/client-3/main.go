@@ -11,7 +11,7 @@ func main() {
 	svc := client.NewClient("springboot", 8080, "admin", "1234")
 	channel := make(chan payload.Payload)
 
-	go svc.InitClient(&payload.Payload{
+	go svc.Send(&payload.Payload{
 		Destination: "/topic/test",
 		Message:     "Hello, STOMP 3!",
 	}, channel)

@@ -24,7 +24,7 @@ func NewClient(host string, port int, username, passcode string) *Client {
 	}
 }
 
-func (c *Client) InitClient(pay *dto.Payload, channel chan<- dto.Payload) {
+func (c *Client) Send(pay *dto.Payload, channel chan<- dto.Payload) {
 	options := []func(*stomp.Conn) error{
 		stomp.ConnOpt.Login(c.username, c.passcode),
 	}
