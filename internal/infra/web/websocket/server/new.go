@@ -33,6 +33,7 @@ type User struct {
 var broadcast = make(chan dto.Payload)
 var users = make(map[string]User)
 var messageConnnected = make((map[string]bool))
+var messageExists = make((map[string]bool))
 var mu sync.Mutex
 
 func NewServer(host, pattern string, port int) *Server {
@@ -119,15 +120,18 @@ func handleConnections(w http.ResponseWriter, r *http.Request) {
 		}
 
 		if !verifyExistsUser(msgs.Username, conn) {
-			systemMessag := dto.Payload{
-				Username: "info",
-				Message:  fmt.Sprintf("User already exists: %s", msgs.Username),
+			if !verify(msgs.Username, &messageExists) {
+				systemMessag := dto.Payload{
+					Username: "info",
+					Message:  fmt.Sprintf("User already exists: %s", msgs.Username),
+				}
+
+				fmt.Printf("User already exists: %s\n", msgs.Username)
+				deleteUserByConn(conn, false)
+				delete(messageExists, msgs.Username)
+
+				conn.WriteJSON(systemMessag)
 			}
-
-			fmt.Printf("User already exists: %s\n", msgs.Username)
-			deleteUserByConn(conn, false)
-
-			conn.WriteJSON(systemMessag)
 			continue
 		}
 
