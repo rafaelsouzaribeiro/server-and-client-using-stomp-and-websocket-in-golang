@@ -54,9 +54,10 @@ import (
 )
 
 func main() {
+	channel := make(chan dto.Payload)
 	client := client.NewClient("localhost", "ws", 8080)
 	client.Connect()
-	client.Channel = make(chan dto.Payload)
+	client.Channel = channel
 	defer client.Conn.Close()
 
 	go client.Listen()
@@ -66,10 +67,11 @@ func main() {
 		client.Send("Client 3", "Hello 4")
 	}()
 
-	for obj := range client.Channel {
+	for obj := range channel {
 		fmt.Printf("%s: %s\n", obj.Username, obj.Message)
 	}
 
 }
+
 
  ```
