@@ -62,23 +62,24 @@ func handleMessages() {
 		mu.Lock()
 		if verify(msg.Username, &messageConnnected) {
 			fmt.Printf("User connected: %s\n", msg.Username)
-		}
 
-		systemMessag := dto.Payload{
-			Username: fmt.Sprintf("Info %s", msg.Username),
-			Message:  fmt.Sprintf("User %s connected", msg.Username),
+			systemMessag := dto.Payload{
+				Username: fmt.Sprintf("Info %s", msg.Username),
+				Message:  fmt.Sprintf("User %s connected", msg.Username),
+			}
+
+			err := msg.Conn.WriteJSON(systemMessag)
+
+			if err != nil {
+				fmt.Println("Error sending system message:", err)
+				msg.Conn.Close()
+				deleteUserByUserName(msg.Username, false)
+			}
 		}
 
 		fmt.Printf("%s : %s \n", msg.Username, msg.Message)
-		err := msg.Conn.WriteJSON(systemMessag)
 
-		if err != nil {
-			fmt.Println("Error sending system message:", err)
-			msg.Conn.Close()
-			deleteUserByUserName(msg.Username, false)
-		}
-
-		err = msg.Conn.WriteJSON(msg)
+		err := msg.Conn.WriteJSON(msg)
 
 		if err != nil {
 			fmt.Println("Error sending system message:", err)
