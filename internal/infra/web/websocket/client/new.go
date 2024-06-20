@@ -3,8 +3,10 @@ package client
 import (
 	"fmt"
 	"log"
+	"net/http"
 
 	"github.com/gorilla/websocket"
+	jwtauth "github.com/rafaelsouzaribeiro/jwt-auth/pkg/middleware"
 	"github.com/rafaelsouzaribeiro/server-and-client-using-stomp-and-websocket-in-golang/internal/usecase/dto"
 )
 
@@ -14,6 +16,7 @@ type Client struct {
 	pattern string
 	Conn    *websocket.Conn
 	Channel chan dto.Payload
+	Token   string
 }
 
 func NewClient(host, pattern string, port int) *Client {
@@ -25,8 +28,9 @@ func NewClient(host, pattern string, port int) *Client {
 }
 
 func (client *Client) Connect() {
+	header := client.GenerateToken()
 	url := fmt.Sprintf("ws://%s:%d/%s", client.host, client.port, client.pattern)
-	conn, _, err := websocket.DefaultDialer.Dial(url, nil)
+	conn, _, err := websocket.DefaultDialer.Dial(url, *header)
 	if err != nil {
 		log.Fatal("Error connecting to WebSocket server:", err)
 	}
@@ -70,4 +74,25 @@ func (client *Client) Listen() {
 		}
 		client.Channel <- msg
 	}
+}
+
+func (client *Client) GenerateToken() *http.Header {
+	header := http.Header{}
+
+	cre, err := jwtauth.NewCredential(3600, "rafael1234", nil)
+
+	if err != nil {
+		fmt.Printf("Error jwt auth: %s", err)
+	}
+
+	claims := map[string]interface{}{}
+	token, errs := cre.CreateToken(claims)
+
+	if errs != nil {
+
+		fmt.Printf("Error create jwt auth: %s", errs)
+	}
+	header.Add("Authorization", "Bearer "+token)
+
+	return &header
 }

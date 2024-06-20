@@ -3,10 +3,12 @@ package server
 import (
 	"fmt"
 	"net/http"
+	"strings"
 	"sync"
 
 	"github.com/google/uuid"
 	"github.com/gorilla/websocket"
+	jwtauth "github.com/rafaelsouzaribeiro/jwt-auth/pkg/middleware"
 	"github.com/rafaelsouzaribeiro/server-and-client-using-stomp-and-websocket-in-golang/internal/usecase/dto"
 )
 
@@ -99,8 +101,34 @@ func handleConnections(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
+	authHeader := r.Header.Get("Authorization")
+	if authHeader == "" {
+		http.Error(w, "Forbidden", http.StatusForbidden)
+		return
+	}
+
+	tokenString := strings.TrimPrefix(authHeader, "Bearer ")
+
+	cre, err := jwtauth.NewCredential(3600, "rafael1234", nil)
+
+	if err != nil {
+		fmt.Printf("Error jwt auth: %s", err)
+	}
+
+	if cre.TokenExpired(tokenString) {
+		systemMessag := dto.Payload{
+			Username: "info",
+			Message:  fmt.Sprintln("Sorry, your token expired"),
+		}
+
+		deleteUserByConn(conn, false)
+		conn.WriteJSON(systemMessag)
+		conn.Close()
+	}
+
 	defer func() {
 		username := getUsernameByConnection(conn)
+
 		delete(messageExists, conn)
 		if username != "" {
 			fmt.Printf("User %s disconnected\n", username)
