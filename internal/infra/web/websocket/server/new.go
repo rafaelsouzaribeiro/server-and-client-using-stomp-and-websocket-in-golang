@@ -112,6 +112,8 @@ func handleConnections(w http.ResponseWriter, r *http.Request) {
 
 		delete(messageExists, conn)
 		if username != "" {
+			_ = verifyToken(username, authHeader, conn)
+
 			fmt.Printf("User %s disconnected\n", username)
 			deleteUserByUserName(username, true)
 			delete(messageConnnected, username)
@@ -129,25 +131,7 @@ func handleConnections(w http.ResponseWriter, r *http.Request) {
 			break
 		}
 
-		tokenString := strings.TrimPrefix(authHeader, "Bearer ")
-
-		cre, errs := jwtauth.NewCredential(3600, "rafael1234", nil)
-
-		if errs != nil {
-			fmt.Printf("Error jwt auth: %s", errs)
-			return
-		}
-
-		if cre.TokenExpired(tokenString) {
-			systemMessag := dto.Payload{
-				Username: "info",
-				Message:  fmt.Sprintln("Sorry, your token expired"),
-			}
-
-			fmt.Printf("%s: Sorry, your token expired", msgs.Username)
-			deleteUserByConn(conn, false)
-			conn.WriteJSON(systemMessag)
-			conn.Close()
+		if !verifyToken(msgs.Username, authHeader, conn) {
 			continue
 		}
 
@@ -183,6 +167,32 @@ func handleConnections(w http.ResponseWriter, r *http.Request) {
 		broadcast <- msgs
 
 	}
+}
+
+func verifyToken(username, authHeader string, conn *websocket.Conn) bool {
+	tokenString := strings.TrimPrefix(authHeader, "Bearer ")
+
+	cre, errs := jwtauth.NewCredential(3600, "rafael1234", nil)
+
+	if errs != nil {
+		fmt.Printf("Error jwt auth: %s", errs)
+		return false
+	}
+
+	if cre.TokenExpired(tokenString) {
+		systemMessag := dto.Payload{
+			Username: "info",
+			Message:  fmt.Sprintln("Sorry, your token expired"),
+		}
+
+		fmt.Printf("%s: Sorry, your token expired\n", username)
+		deleteUserByConn(conn, false)
+		conn.WriteJSON(systemMessag)
+		conn.Close()
+		return false
+	}
+
+	return true
 }
 
 func getUsernameByConnection(conn *websocket.Conn) string {
