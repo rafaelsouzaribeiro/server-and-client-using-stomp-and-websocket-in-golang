@@ -16,7 +16,6 @@ type Client struct {
 	pattern string
 	Conn    *websocket.Conn
 	Channel chan dto.Payload
-	Token   string
 }
 
 func NewClient(host, pattern string, port int) *Client {
