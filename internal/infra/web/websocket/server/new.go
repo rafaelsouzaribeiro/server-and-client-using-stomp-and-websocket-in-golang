@@ -123,6 +123,12 @@ func handleConnections(w http.ResponseWriter, r *http.Request) {
 
 	for {
 
+		var msgs dto.Payload
+		err := conn.ReadJSON(&msgs)
+		if err != nil {
+			break
+		}
+
 		tokenString := strings.TrimPrefix(authHeader, "Bearer ")
 
 		cre, errs := jwtauth.NewCredential(3600, "rafael1234", nil)
@@ -138,16 +144,11 @@ func handleConnections(w http.ResponseWriter, r *http.Request) {
 				Message:  fmt.Sprintln("Sorry, your token expired"),
 			}
 
+			fmt.Printf("%s: Sorry, your token expired", msgs.Username)
 			deleteUserByConn(conn, false)
 			conn.WriteJSON(systemMessag)
 			conn.Close()
 			continue
-		}
-
-		var msgs dto.Payload
-		err := conn.ReadJSON(&msgs)
-		if err != nil {
-			break
 		}
 
 		if !verifyExistsUser(msgs.Username, conn) {
