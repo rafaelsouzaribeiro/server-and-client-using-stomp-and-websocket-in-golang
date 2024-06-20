@@ -141,7 +141,7 @@ func handleConnections(w http.ResponseWriter, r *http.Request) {
 			deleteUserByConn(conn, false)
 			conn.WriteJSON(systemMessag)
 			conn.Close()
-			return
+			continue
 		}
 
 		var msgs dto.Payload

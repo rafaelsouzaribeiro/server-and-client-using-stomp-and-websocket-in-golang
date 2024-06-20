@@ -94,6 +94,5 @@ func (client *Client) GenerateToken() *http.Header {
 	}
 
 	header.Add("Authorization", "Bearer "+token)
-	println(token)
 	return &header
 }
