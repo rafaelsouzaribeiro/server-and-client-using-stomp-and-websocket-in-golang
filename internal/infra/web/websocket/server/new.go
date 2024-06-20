@@ -33,7 +33,7 @@ type User struct {
 var broadcast = make(chan dto.Payload)
 var users = make(map[string]User)
 var messageConnnected = make((map[string]bool))
-var messageExists = make((map[string]bool))
+var messageExists = make((map[*websocket.Conn]bool))
 var mu sync.Mutex
 
 func NewServer(host, pattern string, port int) *Server {
@@ -101,11 +101,12 @@ func handleConnections(w http.ResponseWriter, r *http.Request) {
 
 	defer func() {
 		username := getUsernameByConnection(conn)
-
+		delete(messageExists, conn)
 		if username != "" {
 			fmt.Printf("User %s disconnected\n", username)
 			deleteUserByUserName(username, true)
 			delete(messageConnnected, username)
+
 			conn.Close()
 		}
 
@@ -120,7 +121,7 @@ func handleConnections(w http.ResponseWriter, r *http.Request) {
 		}
 
 		if !verifyExistsUser(msgs.Username, conn) {
-			if !verify(msgs.Username, &messageExists) {
+			if verifyCon(conn, &messageExists) {
 				systemMessag := dto.Payload{
 					Username: "info",
 					Message:  fmt.Sprintf("User already exists: %s", msgs.Username),
@@ -128,7 +129,6 @@ func handleConnections(w http.ResponseWriter, r *http.Request) {
 
 				fmt.Printf("User already exists: %s\n", msgs.Username)
 				deleteUserByConn(conn, false)
-				delete(messageExists, msgs.Username)
 
 				conn.WriteJSON(systemMessag)
 			}
@@ -203,6 +203,15 @@ func verifyExistsUser(u string, conn *websocket.Conn) bool {
 }
 
 func verify(s string, variable *map[string]bool) bool {
+	if _, exists := (*variable)[s]; !exists {
+		(*variable)[s] = true
+		return true
+	}
+	return false
+
+}
+
+func verifyCon(s *websocket.Conn, variable *map[*websocket.Conn]bool) bool {
 	if _, exists := (*variable)[s]; !exists {
 		(*variable)[s] = true
 		return true
