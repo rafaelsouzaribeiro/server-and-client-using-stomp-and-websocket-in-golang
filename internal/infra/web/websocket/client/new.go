@@ -28,6 +28,7 @@ func NewClient(host, pattern string, port int) *Client {
 
 func (client *Client) Connect() {
 	header := client.GenerateToken()
+
 	url := fmt.Sprintf("ws://%s:%d/%s", client.host, client.port, client.pattern)
 	conn, _, err := websocket.DefaultDialer.Dial(url, *header)
 	if err != nil {
@@ -91,7 +92,8 @@ func (client *Client) GenerateToken() *http.Header {
 
 		fmt.Printf("Error create jwt auth: %s", errs)
 	}
-	header.Add("Authorization", "Bearer "+token)
 
+	header.Add("Authorization", "Bearer "+token)
+	println(token)
 	return &header
 }

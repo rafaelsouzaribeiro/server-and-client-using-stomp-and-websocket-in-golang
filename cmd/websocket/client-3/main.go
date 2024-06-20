@@ -2,6 +2,7 @@ package main
 
 import (
 	"fmt"
+	"time"
 
 	"github.com/rafaelsouzaribeiro/server-and-client-using-stomp-and-websocket-in-golang/internal/infra/web/websocket/client"
 	"github.com/rafaelsouzaribeiro/server-and-client-using-stomp-and-websocket-in-golang/internal/usecase/dto"
@@ -18,6 +19,7 @@ func main() {
 
 	go func() {
 		client.Send("Client 3", "Hello 3")
+		time.Sleep(time.Second * 6)
 		client.Send("Client 3", "Hello 4")
 	}()
 

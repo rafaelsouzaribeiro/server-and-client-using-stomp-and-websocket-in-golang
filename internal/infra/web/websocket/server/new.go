@@ -107,25 +107,6 @@ func handleConnections(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	tokenString := strings.TrimPrefix(authHeader, "Bearer ")
-
-	cre, err := jwtauth.NewCredential(3600, "rafael1234", nil)
-
-	if err != nil {
-		fmt.Printf("Error jwt auth: %s", err)
-	}
-
-	if cre.TokenExpired(tokenString) {
-		systemMessag := dto.Payload{
-			Username: "info",
-			Message:  fmt.Sprintln("Sorry, your token expired"),
-		}
-
-		deleteUserByConn(conn, false)
-		conn.WriteJSON(systemMessag)
-		conn.Close()
-	}
-
 	defer func() {
 		username := getUsernameByConnection(conn)
 
@@ -141,6 +122,27 @@ func handleConnections(w http.ResponseWriter, r *http.Request) {
 	}()
 
 	for {
+
+		tokenString := strings.TrimPrefix(authHeader, "Bearer ")
+
+		cre, errs := jwtauth.NewCredential(3600, "rafael1234", nil)
+
+		if errs != nil {
+			fmt.Printf("Error jwt auth: %s", errs)
+			return
+		}
+
+		if cre.TokenExpired(tokenString) {
+			systemMessag := dto.Payload{
+				Username: "info",
+				Message:  fmt.Sprintln("Sorry, your token expired"),
+			}
+
+			deleteUserByConn(conn, false)
+			conn.WriteJSON(systemMessag)
+			conn.Close()
+			return
+		}
 
 		var msgs dto.Payload
 		err := conn.ReadJSON(&msgs)
