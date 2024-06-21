@@ -244,8 +244,6 @@ func verifyExistsUser(u string, conn *websocket.Conn) bool {
 }
 
 func verify(s string, variable *map[string]bool) bool {
-	mu.Lock()
-	defer mu.Unlock()
 	if _, exists := (*variable)[s]; !exists {
 		(*variable)[s] = true
 		return true
@@ -255,8 +253,6 @@ func verify(s string, variable *map[string]bool) bool {
 }
 
 func verifyCon(s *websocket.Conn, variable *map[*websocket.Conn]bool) bool {
-	mu.Lock()
-	defer mu.Unlock()
 	if _, exists := (*variable)[s]; !exists {
 		(*variable)[s] = true
 		return true
