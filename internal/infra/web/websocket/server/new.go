@@ -131,10 +131,6 @@ func handleConnections(w http.ResponseWriter, r *http.Request) {
 			break
 		}
 
-		if !verifyToken(msgs.Username, authHeader, conn) {
-			continue
-		}
-
 		if !verifyExistsUser(msgs.Username, conn) {
 			if verifyCon(conn, &messageExists) {
 				systemMessag := dto.Payload{
@@ -147,6 +143,10 @@ func handleConnections(w http.ResponseWriter, r *http.Request) {
 
 				conn.WriteJSON(systemMessag)
 			}
+			continue
+		}
+
+		if !verifyToken(msgs.Username, authHeader, conn) {
 			continue
 		}
 
