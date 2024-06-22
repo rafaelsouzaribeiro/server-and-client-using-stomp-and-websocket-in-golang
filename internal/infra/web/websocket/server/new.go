@@ -62,7 +62,6 @@ func (server *Server) ServerWebsocket() {
 func handleMessages() {
 	for msg := range broadcast {
 
-		mu.Lock()
 		if verify(msg.Username, &messageConnnected) {
 			fmt.Printf("User connected: %s\n", msg.Username)
 
@@ -89,7 +88,6 @@ func handleMessages() {
 			msg.Conn.Close()
 			deleteUserByUserName(msg.Username, false)
 		}
-		mu.Unlock()
 
 	}
 }
@@ -244,6 +242,8 @@ func verifyExistsUser(u string, conn *websocket.Conn) bool {
 }
 
 func verify(s string, variable *map[string]bool) bool {
+	mu.Lock()
+	defer mu.Unlock()
 	if _, exists := (*variable)[s]; !exists {
 		(*variable)[s] = true
 		return true
@@ -253,6 +253,8 @@ func verify(s string, variable *map[string]bool) bool {
 }
 
 func verifyCon(s *websocket.Conn, variable *map[*websocket.Conn]bool) bool {
+	mu.Lock()
+	defer mu.Unlock()
 	if _, exists := (*variable)[s]; !exists {
 		(*variable)[s] = true
 		return true
