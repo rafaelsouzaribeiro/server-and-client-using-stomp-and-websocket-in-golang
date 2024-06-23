@@ -54,24 +54,25 @@ import (
 )
 
 func main() {
+
 	channel := make(chan dto.Payload)
-	client := client.NewClient("localhost", "ws", 8080)
-	client.Connect()
-	client.Channel = channel
-	defer client.Conn.Close()
-
-	go client.Listen()
-
+	
 	go func() {
-		client.Send("Client 3", "Hello 3")
-		client.Send("Client 3", "Hello 4")
+		client := client.NewClient("localhost", "ws", 8080)
+		defer client.Conn.Close()
+		client.Connect()
+		client.ClientWebsocket("Client 1", "Hello 1", channel)
 	}()
 
 	for obj := range channel {
 		fmt.Printf("%s: %s\n", obj.Username, obj.Message)
 	}
 
+	close(channel)
+
 }
+
+
 
 
  ```
