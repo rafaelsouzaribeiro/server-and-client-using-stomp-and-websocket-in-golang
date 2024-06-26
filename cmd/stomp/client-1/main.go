@@ -20,4 +20,6 @@ func main() {
 		fmt.Printf("Message: %s Destination: %s Header: %s, ContentType: %s \n",
 			cha.Message, cha.Destination, cha.Header, cha.ContentType)
 	}
+
+	close(channel)
 }
