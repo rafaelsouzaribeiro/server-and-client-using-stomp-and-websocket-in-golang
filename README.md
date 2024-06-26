@@ -7,6 +7,7 @@ package main
 
 import (
 	"fmt"
+	"time"
 
 	"github.com/rafaelsouzaribeiro/server-and-client-using-stomp-and-websocket-in-golang/internal/infra/web/websocket/client"
 	"github.com/rafaelsouzaribeiro/server-and-client-using-stomp-and-websocket-in-golang/internal/usecase/dto"
@@ -24,21 +25,24 @@ func main() {
 	go func() {
 		client3.Connect()
 		go client3.Listen()
-		client3.Send("Client 3", "Hello 3.1")
-		client3.Send("Client 3", "Hello 3.2")
+		for range time.Tick(time.Second * 1) {
+			client3.Send("Client 3", "Hello 3")
+		}
 	}()
 
 	go func() {
 		client4.Connect()
 		go client4.Listen()
-		client4.Send("Client 4", "Hello 4.1")
-		client4.Send("Client 4", "Hello 4.2")
+		for range time.Tick(time.Second * 1) {
+			client4.Send("Client 4", "Hello 4")
+		}
 	}()
 
 	for msg := range channel {
 		fmt.Printf("%s: %s\n", msg.Username, msg.Message)
 	}
 }
+
 
 ```
 send messages to a single username
