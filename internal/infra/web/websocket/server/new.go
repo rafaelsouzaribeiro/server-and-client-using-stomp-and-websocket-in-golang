@@ -108,13 +108,19 @@ func handleConnections(w http.ResponseWriter, r *http.Request) {
 	defer func() {
 		username := getUsernameByConnection(conn)
 
+		mu.Lock()
 		delete(messageExists, conn)
+		mu.Unlock()
+
 		if username != "" {
 			_ = verifyToken(username, authHeader, conn)
 
 			fmt.Printf("User %s disconnected\n", username)
 			deleteUserByUserName(username, true)
+
+			mu.Lock()
 			delete(messageConnnected, username)
+			mu.Unlock()
 
 			conn.Close()
 		}
@@ -231,6 +237,8 @@ func deleteUserByConn(conn *websocket.Conn, close bool) {
 }
 
 func verifyExistsUser(u string, conn *websocket.Conn) bool {
+	mu.Lock()
+	defer mu.Unlock()
 	for _, user := range users {
 		if user.conn != conn && u == user.username {
 			return false
