@@ -1,4 +1,6 @@
 Server and client using STOMP and WebSocket in Go. WebSocket with notifications for logged-in and logged-out users with log server, implementing <a href="https://github.com/rafaelsouzaribeiro/jwt-auth" title="JWT authentication">JWT authentication</a> and STOMP authentication.
+<br />
+For web chat access, visit the <a href="https://github.com/rafaelsouzaribeiro/web-chat-websocket-in-golang" title="web chat WebSocket ">repository</a>.
 
 For multiple messages on the websocket, the username is linked to a connection, so whenever you send more than one message to the username, you need to use client.Connect()
 
